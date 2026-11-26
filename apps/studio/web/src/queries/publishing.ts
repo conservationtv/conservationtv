@@ -81,15 +81,11 @@ export async function askToPublish(
   organisationId: string,
   streamId: string,
   protocols: string[],
-  networkId: string | null
+  networkId: string | null,
+  signal?: AbortSignal
 ): Promise<Publishing> {
-  const result = await api.organisations.streams.connect.v1({
-    id: organisationId,
-    streamId,
-    action: 'publish',
-    protocols,
-    networkId
-  });
+  const parameters = { id: organisationId, streamId, action: 'publish' as const, protocols, networkId };
+  const result = await api.organisations.streams.connect.v1(parameters, { signal });
   if (result instanceof Error) throw result;
   return result;
 }

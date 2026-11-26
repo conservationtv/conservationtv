@@ -12,7 +12,7 @@ import {
   type SessionState,
   type UrlTarget
 } from '@/lib/publishing';
-import { askToPublish, useEnsurePersonalStream, type Expiring } from '@/queries/publishing';
+import { askToPublish, useEnsurePersonalStream, type Expiring, type ExpiringConnection } from '@/queries/publishing';
 
 // Going live from this browser, as a session the page starts and stops: the stream its person goes live on from this
 // kind of device (made the first time), the credential and gateway the API chooses for what this browser can send,
@@ -53,19 +53,23 @@ interface Publication {
 
 type Report = (status: Omit<GoLiveStatus, 'streamId'>) => void;
 
+/**
+ * Resolves once `signal` aborts, at once if it already has: an abort that has already happened never fires its event,
+ * so a listener added after it would wait for ever.
+ */
+function aborted(signal: AbortSignal): Promise<void> {
+  if (signal.aborted) return Promise.resolve();
+  return new Promise(resolve => signal.addEventListener('abort', () => resolve(), { once: true }));
+}
+
 /** Resolves after `ms`, or as soon as `signal` aborts. */
-function pause(ms: number, signal: AbortSignal): Promise<void> {
-  return new Promise(resolve => {
-    const timer = setTimeout(resolve, ms);
-    signal.addEventListener(
-      'abort',
-      () => {
-        clearTimeout(timer);
-        resolve();
-      },
-      { once: true }
-    );
+async function pause(ms: number, signal: AbortSignal): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+  const elapsed = new Promise<void>(resolve => {
+    timer = setTimeout(resolve, ms);
   });
+  await Promise.race([elapsed, aborted(signal)]);
+  clearTimeout(timer);
 }
 
 /** When to ask for a credential again: shortly before it expires, and never sooner than a minute. */
@@ -99,7 +103,7 @@ async function publishByMoq(
       if (signal.aborted) break;
       try {
         const { organisationId, streamId, protocols, networkId } = publication;
-        const renewed = await askToPublish(organisationId, streamId, protocols, networkId);
+        const renewed = await askToPublish(organisationId, streamId, protocols, networkId, signal);
         session.renew(renewed.connection);
         expiresAt = renewed.connection.expiresAt;
       } catch {
@@ -114,10 +118,10 @@ async function publishByMoq(
 /** Publish over WHIP until the session is lost or `signal` aborts. */
 async function publishByWhip(publication: Publication, connection: UrlTarget, signal: AbortSignal, report: Report) {
   let lost: () => void = () => undefined;
-  const ended = new Promise<void>(resolve => {
+  const gone = new Promise<void>(resolve => {
     lost = resolve;
-    signal.addEventListener('abort', () => resolve(), { once: true });
   });
+  const ended = Promise.race([gone, aborted(signal)]);
   const session = await publishWhip(publication.media, connection, {
     onState: (phase, message) => {
       report({ phase, message, protocol: 'webrtc' });
@@ -126,6 +130,27 @@ async function publishByWhip(publication: Publication, connection: UrlTarget, si
   });
   await ended;
   session.close();
+}
+
+/**
+ * Publish one session by the connection the API gave, unless stopped while it was asked for, when nothing is dialled.
+ * Resolves whether publishing is over: once stopped, or a MoQ session, which redials by itself until it is; a lost WHIP
+ * session is not, and is asked for again.
+ */
+async function publishSession(
+  publication: Publication,
+  connection: ExpiringConnection,
+  signal: AbortSignal,
+  report: Report
+): Promise<boolean> {
+  if (signal.aborted) return true;
+  report({ phase: 'connecting', protocol: connection.protocol });
+  if (isMoq(connection)) {
+    await publishByMoq(publication, connection, signal, report);
+    return true;
+  }
+  await publishByWhip(publication, connection, signal, report);
+  return signal.aborted;
 }
 
 /**
@@ -152,14 +177,9 @@ async function publishUntil(publication: Publication, signal: AbortSignal, repor
     let protocol: string | undefined = undefined;
     try {
       const { organisationId, streamId, protocols, networkId } = publication;
-      const { connection } = await askToPublish(organisationId, streamId, protocols, networkId);
+      const { connection } = await askToPublish(organisationId, streamId, protocols, networkId, signal);
       protocol = connection.protocol;
-      report({ phase: 'connecting', protocol });
-      if (isMoq(connection)) {
-        await publishByMoq(publication, connection, signal, report);
-        return;
-      }
-      await publishByWhip(publication, connection, signal, report);
+      if (await publishSession(publication, connection, signal, report)) return;
       failures = 0;
     } catch (error) {
       // Stopping is not a failure; a permanent refusal ends it; waiting for the gateway is not a failure in a row.
