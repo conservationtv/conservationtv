@@ -2,9 +2,11 @@ import { chatName, type CameraPosition } from '@conservationtv/cameras';
 import type { CameraState } from '../cameras/states.ts';
 import type { CameraPresetAction } from './commands.ts';
 
-// Working out which camera and preset a chat command means, from the words that follow it. Pure: what it decides from
-// is read first (src/services/chat-commands.ts), so it is the same decision wherever it is made: one step of deciding
-// what a use of a command comes to (src/chat/decide.ts).
+// Working out what the words that follow a chat command mean: which camera and preset, or which of the organisation's
+// streams (src/chat/shows.ts). Pure: what it decides from is read first (src/services/chat-commands.ts), so it is the
+// same decision wherever it is made: one step of deciding what a use of a command comes to (src/chat/decide.ts).
+// Whatever is found by name is found the same way: by any of the names it answers to, compared as `chatName` compares
+// them, with the same replies when no one or more than one answers.
 
 /** A preset, as chat finds it. */
 export interface NamedPreset {
@@ -33,18 +35,34 @@ interface Resolved {
   preset: NamedPreset;
 }
 
-interface Unresolved {
+/** Words that mean nothing it can do: what to say about them. */
+export interface Unresolved {
   ok: false;
   reply: string;
 }
 
-const unresolved = (reply: string): Unresolved => ({ ok: false, reply });
+export const unresolved = (reply: string): Unresolved => ({ ok: false, reply });
 
-/** The cameras called this in chat: by name or alias, compared as `chatName` does. */
-function camerasCalled(cameras: readonly NamedCamera[], word: string): NamedCamera[] {
+/** Of `candidates`, those called `word` in chat: by any of the names each answers to, compared as `chatName` does. */
+export function calledIn<Candidate>(
+  candidates: readonly Candidate[],
+  word: string,
+  namesOf: (candidate: Candidate) => readonly string[]
+): Candidate[] {
   const wanted = chatName(word);
   if (wanted === '') return [];
-  return cameras.filter(camera => [camera.name, ...camera.aliases].some(name => chatName(name) === wanted));
+  return candidates.filter(candidate => namesOf(candidate).some(name => chatName(name) === wanted));
+}
+
+/** The one of `called` (`calledIn`), or what to say when there is none, or more than one: each is a `noun`. */
+export function onlyOne<Candidate>(called: readonly Candidate[], noun: string): Candidate | Unresolved {
+  if (called.length > 1) return unresolved(`More than one ${noun} has that name.`);
+  return called[0] ?? unresolved(`There is no ${noun} by that name.`);
+}
+
+/** The names a camera answers to in chat: its name and its aliases. */
+export function cameraNames(camera: Pick<NamedCamera, 'name' | 'aliases'>): string[] {
+  return [camera.name, ...camera.aliases];
 }
 
 /** The camera the command is for: the one it names, or the one its first word does. */
@@ -54,9 +72,7 @@ function resolveCamera(action: CameraPresetAction, cameras: readonly NamedCamera
     return camera ?? unresolved('That camera is no longer here.');
   }
   if (word === undefined) return unresolved('Say which camera.');
-  const called = camerasCalled(cameras, word);
-  if (called.length > 1) return unresolved('More than one camera has that name.');
-  return called[0] ?? unresolved('There is no camera by that name.');
+  return onlyOne(calledIn(cameras, word, cameraNames), 'camera');
 }
 
 /**

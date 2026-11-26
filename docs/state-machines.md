@@ -415,7 +415,7 @@ From polling: stopped ──▶ idle (cancels poll task)
 
 ## Studio API decision (`decideUse` and chat command routes)
 
-Files: [apps/studio/api/src/chat/decide.ts](../apps/studio/api/src/chat/decide.ts), [resolve.ts](../apps/studio/api/src/chat/resolve.ts), [receipts.ts](../apps/studio/api/src/chat/receipts.ts), [routes/chat-commands.ts](../apps/studio/api/src/routes/chat-commands.ts), [services/chat-commands.ts](../apps/studio/api/src/services/chat-commands.ts), [cameras/grants.ts](../apps/studio/api/src/cameras/grants.ts), [packages/chat/src/uses.ts](../packages/chat/src/uses.ts), [packages/chat/src/audiences.ts](../packages/chat/src/audiences.ts).
+Files: [apps/studio/api/src/chat/decide.ts](../apps/studio/api/src/chat/decide.ts), [resolve.ts](../apps/studio/api/src/chat/resolve.ts), [shows.ts](../apps/studio/api/src/chat/shows.ts), [receipts.ts](../apps/studio/api/src/chat/receipts.ts), [routes/chat-commands.ts](../apps/studio/api/src/routes/chat-commands.ts), [services/chat-commands.ts](../apps/studio/api/src/services/chat-commands.ts), [cameras/grants.ts](../apps/studio/api/src/cameras/grants.ts), [packages/chat/src/uses.ts](../packages/chat/src/uses.ts), [packages/chat/src/audiences.ts](../packages/chat/src/audiences.ts).
 
 The Cloudflare Worker keeps no in-memory state between requests. Instead, `decideUse(facts)` is a pure function over facts read inside `trustedTransaction`, paired with two single-statement conditional `UPDATE`s (`claimChatCommand` and `giveBackChatCommand`) and a stateless signed receipt.
 
@@ -427,7 +427,14 @@ UseFacts ──▶ command missing/disabled? ── yes ──▶ notRun('disabl
                │ yes
                ▼
              action.kind === 'reply'? ─── yes ──▶ [check rest] ──▶ Reply(text)
-               │ cameraPreset
+               │
+             showSwap / showTakeover? ─── yes ──▶ output follows a show? ── no ──▶ notRun('unavailable', reply)
+               │ cameraPreset                      │ yes
+               │                                   ▼
+               │                                 planShowSwap / planShowTakeover ── fail ─▶ notRun('unresolved', reply)
+               │                                   │ ok (ranks to swap, or takeover to set)
+               │                                   ▼
+               │                                 [check rest] ──▶ ShowCommand(show, change, text)
                ▼
              resolveCameraPreset ──────── fail ─▶ notRun('unresolved', reply)
                │ ok (enabled camera + preset)
@@ -445,6 +452,8 @@ UseFacts ──▶ command missing/disabled? ── yes ──▶ notRun('disabl
 
 - **Audience order** (`CHAT_AUDIENCES`): `'everyone' < 'subscriber' < 'vip' < 'moderator' < 'broadcaster'`. Shared in `@conservationtv/chat` with the agent so both agree.
 - **Word resolution (`resolveCameraPreset`)**: matches camera name or aliases (normalised by `chatName`) and requires `camera.state === 'enabled'`, then matches the preset name. Ambiguous, missing or switched-off cameras produce `unresolved` with a human-readable `reply`.
+- **Show words (`planShowSwap`, `planShowTakeover`)**: a word of digits is a lineup position (from 1); any other word a name, matched by the same `calledIn` / `onlyOne` as cameras against a stream's `code`, `name`, and its source camera's name and aliases, the lineup's streams first. `showSwap` needs two lineup streams, `showTakeover` one stream whose camera is not locked or disabled, or `off` while one is armed. Decided against the show's facts read with its row held (`FOR UPDATE`), the lineup normalised in memory.
+- **Show change**: after `claimChatCommand`, in the same transaction, the normalised ranks then the swapped ranks are written (`normaliseLineup`, `writeRanks`), or the takeover (`updateShowControls`: armed and live, or disarmed and not live). The outcome is `ran` with the reply; the show's object is poked (`pokeShow`) once the transaction commits.
 - **Atomic turn claim (`claimChatCommand`)**: `UPDATE chat_command SET triggered_at = now WHERE id = $1 AND (triggered_at IS NULL OR triggered_at <= now - make_interval(secs => cooldown_seconds)) RETURNING old.triggered_at AS previous, cooldown_seconds`. Two concurrent triggers cannot both win; the loser falls back to `notRun('resting')`.
 - **Turn give-back (`giveBackChatCommand`)**: `UPDATE chat_command SET triggered_at = previous WHERE id = $1 AND triggered_at = claimedAt`. Restores `triggered_at` only if no newer use has taken the command since.
 - **Grants** ([cameras/grants.ts](../apps/studio/api/src/cameras/grants.ts), [packages/cameras/src/grants.ts](../packages/cameras/src/grants.ts)): EdDSA JWT signed with the serving agent's own Ed25519 private key (`CAMERA_GRANT_ALGORITHM = 'EdDSA'`, header `Camera-Grant`, claim `camera_grant`). `CONTROL_LIFETIME_SECONDS = 300` (5 min, `scope: { kind: 'control' }`, `priority: 'operator'`); `COMMAND_LIFETIME_SECONDS = 30` (30 s, `scope: { kind: 'command', command }`, `priority: 'automation'`).
@@ -452,8 +461,8 @@ UseFacts ──▶ command missing/disabled? ── yes ──▶ notRun('disabl
 
 #### Invariants
 
-- Nothing before `claimChatCommand` writes to the database, so `disabled`, `audience`, `unresolved`, `unavailable` and `resting` spend nothing of the cooldown.
-- Because `rest` is checked _after_ `resolveCameraPreset` and `servingAgents`, a typo or unavailable camera explains itself even while the command rests.
+- Nothing before `claimChatCommand` writes to the database, so `disabled`, `audience`, `unresolved`, `unavailable` and `resting` spend nothing of the cooldown. A show command's show row lock is held from its read to the commit, so its change is written against what it was decided from.
+- Because `rest` is checked _after_ `resolveCameraPreset` and `servingAgents` (or the show words), a typo or unavailable camera explains itself even while the command rests.
 - Twitch chat calls (`say`) always happen outside database transactions and catch all errors so a Twitch failure never fails `trigger` or `settle`.
 
 ---
@@ -483,8 +492,10 @@ Twitch chat       Listening agent                  Studio API                   
     │                     │                                │                                │
     │                     │        ┌── notRun ─────────────┤ (say reply if unresolved /     │
     │◀────────────────────┼────────┼── [Twitch reply] ─────┤  unavailable; no cooldown used)│
-    │                     │        ├── ran ────────────────┤ (reply action: say reply,      │
-    │◀────────────────────┼────────┼── [Twitch reply] ─────┤  cooldown spent)               │
+    │                     │        ├── ran ────────────────┤ (reply action, or a show       │
+    │◀────────────────────┼────────┼── [Twitch reply] ─────┤  command changed and its show  │
+    │                     │        │                       │  poked after commit: say       │
+    │                     │        │                       │  reply, cooldown spent)        │
     │                     │        └── planned ────────────┤ (sign 30 s commandGrant +      │
     │                     │◀──── { cameraCommands,         │  60 s HS256 receipt;           │
     │                     │        receipt, restsUntil } ──┘  no chat reply yet)            │
@@ -515,23 +526,25 @@ Twitch chat       Listening agent                  Studio API                   
 
 ### What each failure comes to
 
-| Stage                         | Condition                                                                                             | Outcome                                                           | Cooldown                        | Chat reply                                               |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------- |
-| Listening agent (`usesStore`) | Outside audience, unknown command/channel, or `resting`                                               | Dropped locally; API not called                                   | Unchanged                       | None                                                     |
-| Listening agent (`usesStore`) | Burst while `spaced` or in flight                                                                     | Replaces waiting use; latest wins                                 | Unchanged                       | None for superseded uses                                 |
-| `trigger` auth                | Bad signature (401) or not output agent for channel (403)                                             | `unanswered` on agent; spaced by `MIN_GAP_MS`                     | Unchanged                       | None                                                     |
-| `trigger` decision            | `notRun`: `disabled`, `audience`, `resting`                                                           | Agent rests until `restsUntil` (if any)                           | Not spent                       | None                                                     |
-| `trigger` decision            | `notRun`: `unresolved` (bad name, switched-off camera, bad preset) or `unavailable` (no active agent) | Agent rests if `restsUntil` set, else `MIN_GAP_MS`                | Not spent                       | Explains why (e.g. `<camera> can't be moved right now.`) |
-| `trigger` race                | `claimChatCommand` loses concurrent `UPDATE`                                                          | `notRun: resting` with winner's `restsUntil`                      | Not spent by loser              | None                                                     |
-| `trigger` deleted agent       | Serving agent deleted mid-transaction in `planMove`                                                   | Transaction rolls back (`camera_unavailable`), `unanswered`       | Rolled back                     | None                                                     |
-| `trigger` transport           | Timeout (`TELL_TIMEOUT_MS`) or network error                                                          | `unanswered`; spaced by `MIN_GAP_MS`                              | Unknown                         | None                                                     |
-| Carry (`CameraCourier`)       | `carried` (204 / local done)                                                                          | Settled as `carried`                                              | Kept                            | `Moving <camera> to <preset>.`                           |
-| Carry (`CameraCourier`)       | `held` (409 `camera_held` / local `CameraHeld`)                                                       | Settled as `held`                                                 | Given back                      | `Someone is controlling <camera> right now.`             |
-| Carry (`CameraCourier`)       | `unreachable` (iroh error or `CARRY_TIMEOUT_MS` abort)                                                | Settled as `unreachable`                                          | Given back                      | `<camera> can't be moved right now.`                     |
-| Carry (`CameraCourier`)       | `refused` (401/403 / local `GrantRefused`)                                                            | Settled as `refused`                                              | Given back                      | `<camera> can't be moved right now.`                     |
-| Carry (`CameraCourier`)       | `failed` (404, 422, 502, or local driver error)                                                       | Settled as `failed`                                               | Given back                      | `<camera> can't be moved right now.`                     |
-| `settle`                      | `SETTLE_TIMEOUT_MS`, network error or `400 invalid_receipt`                                           | `unsettled`; agent logs error and rests until plan's `restsUntil` | Not given back (receipt lapses) | None                                                     |
-| Twitch reply (`say`)          | Missing scope, non-Twitch channel or Twitch error                                                     | Logged; `replied: false` returned; request still succeeds         | Unaffected                      | None                                                     |
+| Stage                         | Condition                                                                                                  | Outcome                                                           | Cooldown                        | Chat reply                                                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------- | --------------------------------------------------------------------------- |
+| Listening agent (`usesStore`) | Outside audience, unknown command/channel, or `resting`                                                    | Dropped locally; API not called                                   | Unchanged                       | None                                                                        |
+| Listening agent (`usesStore`) | Burst while `spaced` or in flight                                                                          | Replaces waiting use; latest wins                                 | Unchanged                       | None for superseded uses                                                    |
+| `trigger` auth                | Bad signature (401) or not output agent for channel (403)                                                  | `unanswered` on agent; spaced by `MIN_GAP_MS`                     | Unchanged                       | None                                                                        |
+| `trigger` decision            | `notRun`: `disabled`, `audience`, `resting`                                                                | Agent rests until `restsUntil` (if any)                           | Not spent                       | None                                                                        |
+| `trigger` decision            | `notRun`: `unresolved` (bad name, switched-off camera, bad preset) or `unavailable` (no active agent)      | Agent rests if `restsUntil` set, else `MIN_GAP_MS`                | Not spent                       | Explains why (e.g. `<camera> can't be moved right now.`)                    |
+| `trigger` show command        | `notRun`: `unresolved` (bad position or name, not in the lineup) or `unavailable` (output follows no show) | As above                                                          | Not spent                       | Explains why, to moderators (e.g. `There is no show here to change.`)       |
+| `trigger` show command        | `ran`: swapped, taken over, or takeover ended                                                              | Finished; the show is poked after commit                          | Spent                           | `Swapped <a> and <b>.`, `<stream> has taken over.`, `The takeover is over.` |
+| `trigger` race                | `claimChatCommand` loses concurrent `UPDATE`                                                               | `notRun: resting` with winner's `restsUntil`                      | Not spent by loser              | None                                                                        |
+| `trigger` deleted agent       | Serving agent deleted mid-transaction in `planMove`                                                        | Transaction rolls back (`camera_unavailable`), `unanswered`       | Rolled back                     | None                                                                        |
+| `trigger` transport           | Timeout (`TELL_TIMEOUT_MS`) or network error                                                               | `unanswered`; spaced by `MIN_GAP_MS`                              | Unknown                         | None                                                                        |
+| Carry (`CameraCourier`)       | `carried` (204 / local done)                                                                               | Settled as `carried`                                              | Kept                            | `Moving <camera> to <preset>.`                                              |
+| Carry (`CameraCourier`)       | `held` (409 `camera_held` / local `CameraHeld`)                                                            | Settled as `held`                                                 | Given back                      | `Someone is controlling <camera> right now.`                                |
+| Carry (`CameraCourier`)       | `unreachable` (iroh error or `CARRY_TIMEOUT_MS` abort)                                                     | Settled as `unreachable`                                          | Given back                      | `<camera> can't be moved right now.`                                        |
+| Carry (`CameraCourier`)       | `refused` (401/403 / local `GrantRefused`)                                                                 | Settled as `refused`                                              | Given back                      | `<camera> can't be moved right now.`                                        |
+| Carry (`CameraCourier`)       | `failed` (404, 422, 502, or local driver error)                                                            | Settled as `failed`                                               | Given back                      | `<camera> can't be moved right now.`                                        |
+| `settle`                      | `SETTLE_TIMEOUT_MS`, network error or `400 invalid_receipt`                                                | `unsettled`; agent logs error and rests until plan's `restsUntil` | Not given back (receipt lapses) | None                                                                        |
+| Twitch reply (`say`)          | Missing scope, non-Twitch channel or Twitch error                                                          | Logged; `replied: false` returned; request still succeeds         | Unaffected                      | None                                                                        |
 
 ---
 

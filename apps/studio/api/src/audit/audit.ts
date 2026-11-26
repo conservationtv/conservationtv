@@ -7,6 +7,7 @@ import { auditEntries } from '../db/schemas/audit.ts';
 import { trustedTransaction, useDB } from '../db/transaction.ts';
 import { useRequestRecord, type RequestFailureCode, type RequestRecord } from '../requests/record.ts';
 import { organisationScope } from '../services/organisations.ts';
+import { pokeOrganisationShows, pokeShow } from '../shows/pokes.ts';
 import { currentTraceId } from '../tracing/trace.ts';
 
 // The audit log: an operation that is worth keeping says so where it is routed, with `audited(category)` after it
@@ -18,6 +19,13 @@ import { currentTraceId } from '../tracing/trace.ts';
 // would let any account write into an organisation's log, nor for any other failure, which changed nothing. It is written after the operation, in its own trusted
 // transaction, before the response is sent. A failure to write it is logged rather than failing the request, whose
 // change has already committed: the log can miss an entry, but never keeps one for a change that did not happen.
+//
+// A configuration change that succeeded may change what the organisation's shows are composed from (a camera locked,
+// an exposure added, a stream renamed), so its shows are poked to look again, in the background (src/shows/pokes.ts):
+// the one show an operation on a show's own path acts on (`showId`: operating, renaming or deleting it), and each of
+// the organisation's for any other. This is the one place every such change passes. The poke starts once the entry is
+// written: finding the organisation's shows is a transaction on the request's connection too, and a transaction
+// begun on a connection already in one is a savepoint of it, so the two would commit or roll back together.
 
 /** What kind of change an audited operation is: who may do what, credentials, or what the organisation runs. */
 export type AuditCategory = 'access' | 'secrets' | 'configuration';
@@ -136,5 +144,13 @@ export function audited(category: AuditCategory) {
     } catch (error) {
       console.error(JSON.stringify({ event: 'audit_failed', operation: entry.operationId, cause: String(error) }));
     }
+    if (category === 'configuration' && entry.outcome === 'succeeded') pokeShows(entry);
   });
+}
+
+/** Poke the shows a configuration change may have changed (see the top of this file). */
+function pokeShows(entry: NewAuditEntry) {
+  const showId = entry.targets?.showId;
+  if (showId === undefined) pokeOrganisationShows(entry.organisationId);
+  else pokeShow(showId);
 }

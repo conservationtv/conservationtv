@@ -1,8 +1,10 @@
 import type { CameraCommand } from '@conservationtv/cameras';
 import { type ChatAudience, type ChatCommandReason, type CarryResult, inAudience } from '@conservationtv/chat';
 import type { AgentReference } from '../cameras/grants.ts';
-import type { ChatCommandAction } from './commands.ts';
+import type { ShowFacts } from '../shows/resolve.ts';
+import type { ChatCommandAction, ShowSwapAction, ShowTakeoverAction } from './commands.ts';
 import { type NamedCamera, type NamedPreset, resolveCameraPreset } from './resolve.ts';
+import { planShowSwap, planShowTakeover, type ShowChange } from './shows.ts';
 
 // What one use of a chat command comes to. A use runs through four processes, in this order:
 //
@@ -13,11 +15,16 @@ import { type NamedCamera, type NamedPreset, resolveCameraPreset } from './resol
 //   this API                1. authorised: the device is the agent of an output that goes out to the channel
 //    │                      2. the command is there and enabled                          else notRun: disabled
 //    │                      3. the viewer is in its audience                             else notRun: audience
-//    │                      4. its words name a camera and preset it can use             else notRun: unresolved
-//    │                      5. an agent reaches that camera                              else notRun: unavailable
+//    │                      4. its words name what it acts on                            else notRun: unresolved
+//    │                         a camera and a preset it can use, for `cameraPreset`;
+//    │                         streams of the show's lineup, or a stream to take over or `off`, for a show command
+//    │                      5. there is something to act with                            else notRun: unavailable
+//    │                         an agent reaches the camera; the output follows a show
 //    │                         (why 4 or 5 failed is said in chat only to a moderator or the broadcaster: `toldWhy`)
 //    │                      6. its turn is taken: the cooldown is spent, here and only here   else notRun: resting
-//    │                      7. a reply is said in chat (ran), or a grant is signed for the move (planned)
+//    │                      7. a reply is said in chat (ran); or the show is changed, then said so (ran), and its
+//    │                         object poked once that has committed (src/shows/pokes.ts); or a grant is signed for
+//    │                         the move (planned)
 //    │ planned: cameraCommands, receipt
 //    ▼
 //   listening agent         carries each command to the agent that reaches the camera
@@ -34,10 +41,12 @@ import { type NamedCamera, type NamedPreset, resolveCameraPreset } from './resol
 //
 // Steps 2 to 5 are decided here, from facts read first, so the decision is pure: the same facts come to the same
 // thing wherever it is made. Nothing up to step 5 writes anything, so a use that comes to nothing spends nothing: a
-// typo leaves the command free for the corrected use straight after. Step 6 is the one write, a
+// typo leaves the command free for the corrected use straight after. Step 6 is the one write that decides, a
 // conditional UPDATE (src/services/chat-commands.ts), so two uses at once cannot both take the turn; the decision
-// names it `resting` already when the facts show the command resting, and the UPDATE has the last word. Chat is told
-// a camera moves only once it has: what is said of a planned use waits for its settlement.
+// names it `resting` already when the facts show the command resting, and the UPDATE has the last word. A show
+// command reads its show holding the show's row, so what it decided against is still so when its change is written,
+// after the turn, in the same transaction. Chat is told a camera moves only once it has: what is said of a planned use
+// waits for its settlement. A show command finishes here, so its agent carries nothing.
 
 /** The command as it is used: what it does, for whom, and when it last ran and how long it rests after. */
 export interface UsedCommand {
@@ -58,15 +67,17 @@ export interface UseFacts {
   roles: readonly ChatAudience[];
   /** The words that followed the command, in order. */
   words: readonly string[];
-  /** The organisation's cameras as chat finds them: read only for a command that points one. */
+  /** The organisation's cameras as chat finds them: read only for a command that points one, or names streams. */
   cameras: readonly NamedCamera[];
   /** The agent that reaches each camera, by camera: one without is not in it. */
   servingAgents: ReadonlyMap<string, AgentReference>;
+  /** The show the output follows, and what it is resolved from: read only for a show command, none for no show. */
+  show: ShowFacts | undefined;
   now: Date;
 }
 
 /** What a use comes to before anything is written. */
-export type Decision = NotRun | Reply | Move;
+export type Decision = NotRun | Reply | Move | ShowCommand;
 
 /** Nothing runs, and the command's turn is not taken: why, what to say about it if anything, and its rest. */
 export interface NotRun {
@@ -80,6 +91,14 @@ export interface NotRun {
 /** Take the command's turn, then say this in chat. */
 export interface Reply {
   kind: 'reply';
+  text: string;
+}
+
+/** Take the command's turn, then change the show as it was decided against, and say this in chat. */
+export interface ShowCommand {
+  kind: 'show';
+  show: ShowFacts;
+  change: ShowChange;
   text: string;
 }
 
@@ -134,6 +153,7 @@ export function decideUse(facts: UseFacts): Decision {
 /** What the command's action comes to with these facts, its rest aside. */
 function plan(action: ChatCommandAction, facts: UseFacts): Decision {
   if (action.kind === 'reply') return { kind: 'reply', text: action.text };
+  if (action.kind === 'showSwap' || action.kind === 'showTakeover') return planShow(action, facts);
   const resolution = resolveCameraPreset(action, facts.words, facts.cameras);
   if (!resolution.ok) return notRun('unresolved', null, resolution.reply);
   const { camera, preset } = resolution;
@@ -147,6 +167,16 @@ function plan(action: ChatCommandAction, facts: UseFacts): Decision {
     agent,
     command
   };
+}
+
+/** What a show command comes to: unavailable while the output follows no show. */
+function planShow(action: ShowSwapAction | ShowTakeoverAction, facts: UseFacts): Decision {
+  const { show, words, cameras } = facts;
+  if (show === undefined) return notRun('unavailable', null, 'There is no show here to change.');
+  const planned =
+    action.kind === 'showSwap' ? planShowSwap(show, words, cameras) : planShowTakeover(show, words, cameras);
+  if (!planned.ok) return notRun('unresolved', null, planned.reply);
+  return { kind: 'show', show, change: planned.change, text: planned.reply };
 }
 
 /** What is said in chat of a planned move, once the agent that carried it says what came of it. */

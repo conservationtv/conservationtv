@@ -1,3 +1,5 @@
+import { MAX_SLOTS } from '@conservationtv/shows';
+import { MAX_SYNC_OFFSET_MS, MIN_SYNC_OFFSET_MS } from '@strangecyan/vignette';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
@@ -8,10 +10,23 @@ import { useDevice } from '../middleware/device.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { audited } from '../audit/audit.ts';
 import { selectDeviceOutput } from '../services/outputs.ts';
-import { createShow, deleteShow, getShow, listShows, showVisible, updateShow } from '../services/shows.ts';
-import { broadcastBundle, broadcastServe, shuffledComposition } from '../shows/broadcast.ts';
 import {
+  createShow,
+  deleteShow,
+  getShow,
+  getShowLineup,
+  listShows,
+  renameShow,
+  showVisible,
+  swapLineup,
+  updateShowControls,
+  updateShowStream,
+  withoutControls
+} from '../services/shows.ts';
+import {
+  conflict,
   forbidden,
+  invalidReference,
   invalidRequest,
   notFound,
   operationVersion,
@@ -28,16 +43,61 @@ const ShowParamsSchema = OrganisationParamsSchema.extend({ showId: z.uuid().desc
 export type ShowParams = z.output<typeof ShowParamsSchema>;
 const ShowNameSchema = z.string().trim().min(1).max(120).describe('What the show is called in the studio.');
 export type ShowName = z.output<typeof ShowNameSchema>;
+const ShowStreamParamsSchema = ShowParamsSchema.extend({ streamId: z.uuid().describe('The stream.') });
+export type ShowStreamParams = z.output<typeof ShowStreamParamsSchema>;
+const SlotsSchema = z
+  .int()
+  .min(0)
+  .max(MAX_SLOTS)
+  .describe('How many slots its layout has, from none to six; the lineup fills them in order.');
+export type Slots = z.output<typeof SlotsSchema>;
+const VolumeSchema = z.number().min(-60).max(12).describe('A level, in decibels: 0 is standard volume.');
+export type Volume = z.output<typeof VolumeSchema>;
+const MutedSchema = z.boolean().describe('Whether it is muted.');
+export type Muted = z.output<typeof MutedSchema>;
+const TakeoverStreamSchema = z
+  .uuid()
+  .nullable()
+  .describe(
+    "The stream armed to take over the screen, any of the organisation's: placed off air, so it is already playing when it goes live. Arming another, or null to disarm, ends a live takeover unless `takeoverLive` is given too."
+  );
+export type TakeoverStream = z.output<typeof TakeoverStreamSchema>;
+const TakeoverLiveSchema = z
+  .boolean()
+  .describe('Whether the armed stream has taken over the screen. Only while one is armed.');
+export type TakeoverLive = z.output<typeof TakeoverLiveSchema>;
+const StreamReferenceSchema = z
+  .union([
+    z.strictObject({ streamId: z.uuid().describe('A stream in the lineup.') }),
+    z.strictObject({ position: z.int().min(1).describe('A position in the lineup, from 1.') })
+  ])
+  .describe('A stream in the lineup, by its ID or its position.');
+export type StreamReference = z.output<typeof StreamReferenceSchema>;
+const SyncOffsetSchema = z
+  .int()
+  .min(MIN_SYNC_OFFSET_MS)
+  .max(MAX_SYNC_OFFSET_MS)
+  .describe(
+    'How far its sound is shifted against its picture, in milliseconds: later when positive, and when negative its picture is held back instead, by at most 950.'
+  );
+export type SyncOffset = z.output<typeof SyncOffsetSchema>;
+const AudioStreamSchema = z
+  .uuid()
+  .nullable()
+  .describe("The stream whose sound it brings, one of the organisation's: null for its own.");
+export type AudioStream = z.output<typeof AudioStreamSchema>;
 
-// An organisation's shows (src/services/shows.ts): what is on screen, each composed by an object of its own
-// (src/shows/host.tsx, keyed by the show's ID). Members read them, administrators manage them. How a show goes out is
-// each output's that follows it (src/routes/outputs.ts).
+// An organisation's shows (src/services/shows.ts, docs/shows.md): what is on screen, each composed by an object of
+// its own (src/shows/host.tsx, keyed by the show's ID) from what is in the database. Members read and operate them:
+// the layout, the lineup's order, the mix and the takeover. Administrators create, name and delete them. How a show
+// goes out is each output's that follows it (src/routes/outputs.ts). Each command on a show is audited as a
+// configuration change, which pokes that show's object once it has committed (src/audit/audit.ts,
+// src/shows/pokes.ts), so it looks again; any other change to what it is composed from reaches it from where that
+// change is made.
 //
 // A show is followed as a vignette stream over a WebSocket, by members signed in by their session cookie and by the
-// agents of the outputs following it, signed as their devices. Following it changes nothing; only setting its
-// composition does, which for now is a temporary command composing it from the organisation's streams. Both are
-// versionless operations: following is a WebSocket, which the SDK gives the address of (`webSocket`), and composing
-// will give way to a show's controls.
+// agents of the outputs following it, signed as their devices. The first follow since the show's object started syncs
+// it first. Following is a versionless operation: it is a WebSocket, which the SDK gives the address of (`webSocket`).
 // A frame page (packages/shows' `*.frame.tsx`, as OBS or an iframe opens it) follows its own source over a WebSocket
 // too, with no session at all, so that socket serves frame sources only (src/shows/host.tsx). The show's bundle names
 // that address (src/shows/broadcast.ts), so it is no operation: its route is hidden.
@@ -69,6 +129,33 @@ export default new Hono()
       summary: "List an organisation's shows",
       description:
         'Each with the outputs following it, as `organisations.shows.get` reads one. Empty for organisations you are not a member of.',
+      responses: {
+        200: { description: 'The shows, oldest first' },
+        400: invalidRequest,
+        401: unauthenticated,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', OrganisationParamsSchema),
+    async c => {
+      const { id } = c.req.valid('param');
+      const rows = await transaction(() => listShows(id));
+      // As they were before shows had controls.
+      const shows = rows.map(withoutControls);
+      c.header('Cache-Control', 'no-store');
+      return c.json({ shows }, 200);
+    }
+  )
+  .get(
+    '/',
+    describeRoute({
+      operationId: 'organisations.shows.list',
+      ...operationVersion(2),
+      summary: "List an organisation's shows",
+      description:
+        'Each with how it is operated (its layout, its mix and its takeover) and the outputs following it, as `organisations.shows.get` reads one, without its lineup. Empty for organisations you are not a member of.',
       responses: {
         200: { description: 'The shows, oldest first' },
         400: invalidRequest,
@@ -138,6 +225,41 @@ export default new Hono()
       const row = await transaction(() => getShow(id, showId));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
+      return c.json(withoutControls(row), 200);
+    }
+  )
+  .get(
+    '/:showId',
+    describeRoute({
+      operationId: 'organisations.shows.get',
+      ...operationVersion(2),
+      summary: 'Read a show',
+      description:
+        'How it is operated (`slots`, its layout; `volumeDb` and `muted`, its own mix; `takeoverStreamId`, the stream armed to take over, and `takeoverLive`, whether it has), the outputs following it, and its `lineup`: every camera stream of the organisation, those in the lineup first, in position order (the first `slots` are on screen), then those out of it, each with why (`absence`: its camera is `locked` or `disabled`, or nothing delivers it, `undelivered`), and each with how the show mixes its sound. A camera that is unlocked, or new, joins the lineup at the end. `takeoverMix` is how the show mixes the stream armed to take over, as a lineup entry says it but for where it is (null with none armed): a stream with no camera is in no lineup, so this is where its level and mute are. `unreachable` says, for each output following the show that has an agent (an output with none reads nothing, and is left out), which of the streams the show needs its agent reaches no delivery of (`streamIds`, empty when it reaches them all): the cameras on screen, the stream armed to take over, and any stream one of those brings the sound of, each with at least one delivery but none at a gateway the agent reaches, from its network or the internet, and only at the gateway the output reads from when it names one (`inputGatewayId`). The output still places such a stream, so its card shows there. Protocols are not considered: which an agent asks with is its own.',
+      responses: {
+        200: { description: 'The show' },
+        400: invalidRequest,
+        401: unauthenticated,
+        404: notFound,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', ShowParamsSchema),
+    async c => {
+      const { id, showId } = c.req.valid('param');
+      const row = await transaction(async () => {
+        // The show, its lineup, its takeover's mix and what its outputs cannot reach, as one transaction sees them;
+        // nothing for one it cannot see.
+        const show = await getShow(id, showId);
+        if (!show) return undefined;
+        const mixed = await getShowLineup(id, showId);
+        const unreachable = mixed?.unreachable ?? [];
+        return { ...show, lineup: mixed?.lineup ?? [], takeoverMix: mixed?.takeover ?? null, unreachable };
+      });
+      if (!row) throw new ApiFailure('not_found');
+      c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }
   )
@@ -165,7 +287,123 @@ export default new Hono()
     async c => {
       const { id, showId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const row = await transaction(() => updateShow(id, showId, body));
+      const principal = usePrincipal();
+      const row = await trustedTransaction(() => renameShow(principal, id, showId, body));
+      c.header('Cache-Control', 'no-store');
+      return c.json(row, 200);
+    }
+  )
+  .patch(
+    '/:showId/controls',
+    describeRoute({
+      operationId: 'organisations.shows.controls.update',
+      ...operationVersion(1),
+      summary: 'Operate a show',
+      description:
+        "Any member: change its layout (`slots`), its own mix (`volumeDb`, `muted`), or its takeover: `takeoverStreamId` arms any of the organisation's streams, placed off air so it is already playing, and `takeoverLive` puts it on air, which takes the grid off and releases its cameras. Arming another stream, or disarming (`takeoverStreamId: null`), ends a live takeover unless `takeoverLive` is given too: `{ takeoverStreamId, takeoverLive: true }` cuts straight to the new stream. A takeover whose stream drops holds on its card until someone ends it. Only the fields given change; everyone following the show sees the result as its next update.",
+      responses: {
+        200: { description: 'The show, without its outputs and lineup' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        404: notFound,
+        409: conflict,
+        412: versionMismatch,
+        422: invalidReference,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    audited('configuration'),
+    validator('param', ShowParamsSchema),
+    validator(
+      'json',
+      z
+        .strictObject({
+          slots: SlotsSchema.optional(),
+          volumeDb: VolumeSchema.optional(),
+          muted: MutedSchema.optional(),
+          takeoverStreamId: TakeoverStreamSchema.optional(),
+          takeoverLive: TakeoverLiveSchema.optional()
+        })
+        .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
+    ),
+    async c => {
+      const { id, showId } = c.req.valid('param');
+      const body = c.req.valid('json');
+      const row = await transaction(() => updateShowControls(id, showId, body));
+      c.header('Cache-Control', 'no-store');
+      return c.json(row, 200);
+    }
+  )
+  .post(
+    '/:showId/lineup/swap',
+    describeRoute({
+      operationId: 'organisations.shows.lineup.swap',
+      ...operationVersion(1),
+      summary: "Swap two streams in a show's lineup",
+      description:
+        'Any member. `a` and `b` each name a stream in the lineup, by its ID or its position (from 1), resolved against the lineup as it is when the swap is made; the two exchange places wherever they are: both on screen, or one off it, which is how a camera is brought on. Refused (`invalid_reference`) for a stream that is not in the lineup, or a position past its end. Returns the lineup after, as `organisations.shows.get` reads it.',
+      responses: {
+        200: { description: 'The lineup after the swap' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        404: notFound,
+        412: versionMismatch,
+        422: invalidReference,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    audited('configuration'),
+    validator('param', ShowParamsSchema),
+    validator('json', z.strictObject({ a: StreamReferenceSchema, b: StreamReferenceSchema })),
+    async c => {
+      const { id, showId } = c.req.valid('param');
+      const { a, b } = c.req.valid('json');
+      const principal = usePrincipal();
+      const lineup = await trustedTransaction(() => swapLineup(principal, id, showId, a, b));
+      c.header('Cache-Control', 'no-store');
+      return c.json({ lineup }, 200);
+    }
+  )
+  .patch(
+    '/:showId/streams/:streamId',
+    describeRoute({
+      operationId: 'organisations.shows.streams.mix',
+      ...operationVersion(1),
+      summary: 'Set how a show mixes a stream',
+      description:
+        "Any member: the stream's level (`volumeDb`), whether it is muted, how far its sound is shifted against its picture (`syncOffsetMs`), and whose sound it brings (`audioStreamId`, null for its own). Kept for the show whether or not the stream is on screen. A stream never given any is at standard volume, not muted. A stream that brings another's sound is placed without its own, and the other is placed for its sound alone. Only the fields given change; everyone following the show hears the result in its next update.",
+      responses: {
+        200: { description: "The stream's settings in the show" },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        412: versionMismatch,
+        422: invalidReference,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    audited('configuration'),
+    validator('param', ShowStreamParamsSchema),
+    validator(
+      'json',
+      z
+        .strictObject({
+          volumeDb: VolumeSchema.optional(),
+          muted: MutedSchema.optional(),
+          syncOffsetMs: SyncOffsetSchema.optional(),
+          audioStreamId: AudioStreamSchema.optional()
+        })
+        .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
+    ),
+    async c => {
+      const { id, showId, streamId } = c.req.valid('param');
+      const body = c.req.valid('json');
+      const row = await transaction(() => updateShowStream(id, showId, streamId, body));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }
@@ -204,7 +442,7 @@ export default new Hono()
       ...webSocket(),
       summary: 'Follow a show',
       description:
-        "A WebSocket, sent the show as a vignette stream: its setup and latest update first, then each update as it is composed. Followed by the organisation's members, and by the agents of the outputs following it, signed as their devices. Refused until the show has been composed.",
+        "A WebSocket, sent the show as a vignette stream: its setup and latest update first, then each update as it is composed. Followed by the organisation's members, and by the agents of the outputs following it, signed as their devices. A show never composed is composed first. Closed with code 4404 once the show is deleted.",
       responses: {
         101: { description: 'Following the show' },
         400: invalidRequest,
@@ -234,14 +472,16 @@ export default new Hono()
     const broadcast = environment.broadcasts.get(showId);
     return broadcast.fetch(c.req.raw);
   })
-  // Temporary, until a show has controls.
+  // Released versionless, while a show was composed by hand; kept, in its released shape, for the web tabs and CLIs
+  // from then. A show composes itself now, so this only asks it to look again.
   .post(
     '/:showId/compose',
     describeRoute({
       operationId: 'organisations.shows.compose',
+      deprecated: true,
       summary: 'Compose a show',
       description:
-        "Composes the show from the organisation's streams, as the caller sees them, in a random order. Everyone following it is sent the result as its next update. Temporary, until a show has controls.",
+        'Deprecated: a show is composed from its state whenever that changes (`organisations.shows.controls.update`, `organisations.shows.lineup.swap`). This asks it to look again, and answers once it has. Any member.',
       responses: {
         204: { description: 'Composed' },
         400: invalidRequest,
@@ -251,19 +491,13 @@ export default new Hono()
       }
     }),
     requirePrincipal,
-    audited('configuration'),
     validator('param', ShowParamsSchema),
     async c => {
       const { id, showId } = c.req.valid('param');
-      const state = await transaction(async () => {
-        if (!(await showVisible(id, showId))) throw new ApiFailure('not_found');
-        return shuffledComposition(id);
-      });
+      await requireShow(id, showId);
       const environment = useEnvironment();
-      const bundle = await broadcastBundle(environment.assets, environment.variables.APP_URL);
-      const serve = broadcastServe(id, showId, environment.variables.APP_URL);
       const broadcast = environment.broadcasts.get(showId);
-      await broadcast.setComposition({ state, ...bundle, serve });
+      await broadcast.sync();
       return c.body(null, 204);
     }
   );

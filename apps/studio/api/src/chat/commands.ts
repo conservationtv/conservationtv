@@ -27,9 +27,41 @@ const CameraPresetActionSchema = z.strictObject({
 });
 export type CameraPresetAction = z.output<typeof CameraPresetActionSchema>;
 
-export const ChatCommandActionSchema = z
+/**
+ * Swap two streams in the show the output follows, each named by the words that follow the command in chat: a whole
+ * number is a position in its lineup, anything else a name (`!swap 1 2`, `!swap serval 2`, `!swap serval fox`).
+ */
+const ShowSwapActionSchema = z.strictObject({ kind: z.literal('showSwap') });
+export type ShowSwapAction = z.output<typeof ShowSwapActionSchema>;
+
+/**
+ * Take over the show the output follows with the stream the word that follows the command names, live at once; or end
+ * the takeover with `off`: `!takeover fox`, `!takeover off`.
+ */
+const ShowTakeoverActionSchema = z.strictObject({ kind: z.literal('showTakeover') });
+export type ShowTakeoverAction = z.output<typeof ShowTakeoverActionSchema>;
+
+/** What a command did before show commands, as the operations from then take and return it (version 1). */
+export const FirstChatCommandActionSchema = z
   .discriminatedUnion('kind', [ReplyActionSchema, CameraPresetActionSchema])
   .describe(
     'What the command does, by `kind`: `reply` with `text`, or `cameraPreset`, pointing a camera at one of its presets, each named by the command or, when null, by the words that follow it in chat, the camera first.'
   );
+export type FirstChatCommandAction = z.output<typeof FirstChatCommandActionSchema>;
+
+export const ChatCommandActionSchema = z
+  .discriminatedUnion('kind', [
+    ReplyActionSchema,
+    CameraPresetActionSchema,
+    ShowSwapActionSchema,
+    ShowTakeoverActionSchema
+  ])
+  .describe(
+    "What the command does, by `kind`: `reply` with `text`; `cameraPreset`, pointing a camera at one of its presets, each named by the command or, when null, by the words that follow it in chat, the camera first; `showSwap`, swapping two streams in the lineup of the show the output follows, each named by a word that follows it, a position or a name; or `showTakeover`, taking over that show with the stream the word that follows it names, or ending the takeover with `off`. A name is a stream's code or name, or its camera's name or one of its aliases."
+  );
 export type ChatCommandAction = z.output<typeof ChatCommandActionSchema>;
+
+/** Whether a command does what commands did before show commands, so the operations from then can tell of it. */
+export function isFirstAction(action: ChatCommandAction): action is FirstChatCommandAction {
+  return action.kind === 'reply' || action.kind === 'cameraPreset';
+}

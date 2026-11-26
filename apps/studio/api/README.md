@@ -27,6 +27,8 @@ releases it the way gatekeeper is released. Locally, the Hyperdrive and KV IDs a
 | `GET /organisations/{id}/members`                                                           | members                                      | `organisations.members.list` v1: the directory, with each member's profile                                  |
 | `PATCH /organisations/{id}/members/me`                                                      | members                                      | `organisations.members.updateSelf` v1: your `displayName` there                                             |
 | `DELETE /organisations/{id}/members/{userId}`                                               | administrators, or `me`                      | `organisations.members.remove` v1: remove a member, or leave                                                |
+| `PUT`, `DELETE /organisations/{id}/members/{userId}/admin`                                  | administrators                               | `organisations.members.grantAdmin`, `revokeAdmin` v1: make or unmake an administrator                       |
+| `PUT`, `DELETE /organisations/{id}/members/{userId}/publisher`                              | administrators                               | `organisations.members.grantPublisher`, `revokePublisher` v1: who may go live (`streamPublisher`)           |
 | `GET /organisations/{id}/invitations`                                                       | administrators                               | `organisations.invitations.list` v1                                                                         |
 | `POST /organisations/{id}/invitations`                                                      | administrators                               | `organisations.invitations.create` v1: an `email` (sent a link) or a `userId`                               |
 | `DELETE /organisations/{id}/invitations/{invitationId}`                                     | administrators                               | `organisations.invitations.cancel` v1                                                                       |
@@ -44,20 +46,28 @@ releases it the way gatekeeper is released. Locally, the Hyperdrive and KV IDs a
 | `POST …/cameras/{cameraId}/presets`; `PATCH`, `DELETE …/presets/{presetId}`                 | administrators                               | `organisations.cameras.presets.*` v1: positions saved by name, in the control contract's units              |
 | `GET`, `PUT`, `DELETE …/cameras/{cameraId}/presets/{presetId}/thumbnail`                    | members read, administrators write           | `organisations.cameras.presets.thumbnail.*` v1: a small picture of the preset's view, kept in `MEDIA`       |
 | `POST /organisations/{id}/cameras/{cameraId}/control`                                       | administrators                               | `organisations.cameras.control.connect` v1: the agent that reaches the camera, and a grant to present to it |
-| `GET`, `POST /organisations/{id}/chat-commands`; `GET`, `PATCH`, `DELETE …/{commandId}`     | members read, administrators write           | `organisations.chatCommands.*` v1                                                                           |
+| `GET`, `POST /organisations/{id}/chat-commands`; `GET`, `PATCH`, `DELETE …/{commandId}`     | members read, administrators write           | `organisations.chatCommands.*` v1; v2 with the show commands, `showSwap` and `showTakeover`                 |
 | `POST /organisations/{id}/chat-commands/{commandId}/triggers`                               | devices, by signature                        | `organisations.chatCommands.trigger` v1: an output's agent says a command was used; what comes of it        |
 | `POST /organisations/{id}/chat-commands/{commandId}/settlements`                            | devices, by signature                        | `organisations.chatCommands.settle` v1: that agent says what came of a planned use; chat is answered        |
 | `PUT /organisations/{id}/browser`                                                           | members                                      | `organisations.browser.ensure` v1: this session's browser device, with its private key                      |
 | `GET`, `POST /organisations/{id}/agents`; `GET`, `PATCH`, `DELETE …/agents/{agentId}`       | members read, administrators write           | `organisations.agents.*` v1                                                                                 |
 | `GET`, `POST /organisations/{id}/gateways`; `GET`, `PATCH`, `DELETE …/gateways/{gatewayId}` | members read, administrators write           | `organisations.gateways.*` v1: with the built-in gateways, read-only                                        |
-| `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}`    | members read, administrators write           | `organisations.streams.*` v1                                                                                |
+| `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}`    | members read, administrators write           | `organisations.streams.*` v1, v2 with each stream's short `code`                                            |
 | `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete)                    | administrators                               | `organisations.streams.exposures.*`, `.recorders.*` v1                                                      |
 | `POST /organisations/{id}/streams/{streamId}/exposures/{exposureId}/connections`            | members read, devices by signature           | `organisations.streams.exposures.connect` v1: where to read or publish it, with a short-lived credential    |
+| `POST /organisations/{id}/streams/{streamId}/connections`                                   | members, output agents by signature          | `organisations.streams.connect` v1: read or publish a stream by whatever delivers it                        |
+| `PUT /organisations/{id}/streams/personal/{device}`                                         | publishers                                   | `organisations.streams.personal.ensure` v1: the stream you go live on from a `phone` or `computer`          |
+| `PUT …/streams/{streamId}/encoder`; `POST`, `DELETE …/streams/{streamId}/key`               | publishers                                   | `organisations.streams.encoder.ensure`, `.key.replace`, `.key.delete` v1: an encoder's URL and key          |
+| `GET`, `POST /organisations/{id}/shows`; `GET`, `PATCH`, `DELETE …/shows/{showId}`          | members read, administrators write           | `organisations.shows.*` v1; `list`, `get` v2: how each is operated, and its lineup (docs/shows.md)          |
+| `PATCH …/shows/{showId}/controls`                                                           | members                                      | `organisations.shows.controls.update` v1: layout, mix and takeover                                          |
+| `POST …/shows/{showId}/lineup/swap`; `PATCH …/shows/{showId}/streams/{streamId}`            | members                                      | `organisations.shows.lineup.swap`, `organisations.shows.streams.mix` v1: order, and a stream's sound        |
+| `GET …/shows/{showId}/follow`                                                               | members, output agents by signature          | `organisations.shows.follow`, versionless: a WebSocket of its composition                                   |
+| `GET /organisations/{id}/streams/live`                                                      | members                                      | `organisations.streams.live.list` v1: which exposures are live now, as each gateway says (docs/shows.md)    |
 | `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs`   | members                                      | `organisations.subjects.*` v1                                                                               |
 | `GET /organisations/{id}/subjects/{subjectId}/metrics/{seriesId}`                           | members                                      | `organisations.subjects.metrics.get` v1: one series' points over a time range, in buckets                   |
 | `GET /organisations/{id}/topology`                                                          | members                                      | `organisations.topology.get` v1: everything the lists read, the subjects' states, what the broadcast places |
 | `POST /reports`                                                                             | devices, by signature                        | `reports.submit` v1: a batch of events, metrics and logs                                                    |
-| `GET /device-configuration`                                                                 | devices, by signature                        | `deviceConfiguration.get` v1 to v3: what the signing device runs, derived from the topology when it asks    |
+| `GET /device-configuration`                                                                 | devices, by signature                        | `deviceConfiguration.get` v1 to v4: what the signing device runs, derived from the topology when it asks    |
 | `PUT /device-addresses`                                                                     | devices, by signature                        | `deviceAddresses.replace` v1: the addresses the signing device found on its interfaces, replaced whole      |
 | `POST /iroh-sessions`                                                                       | devices, by signature                        | `irohSessions.create` v1: the one iroh relay every device uses, asked for each time an endpoint is bound    |
 | `GET /whoami`                                                                               | devices, by signature                        | `whoami.get` v1: the signing device's ID, organisation and kind, which it reports about itself as           |
@@ -216,7 +226,11 @@ organisation, its memberships and directory) and `organisationAdmin` (rename the
 remove members, edit profiles). Deleting an organisation needs `globalAdmin`, granted only at the global scope and only
 by trusted code: nothing in the API grants it, so make an operator one with
 `authorization.access(admin).root().grant({ principal: user(id), role: globalAdmin })`. The creator of an organisation
-is its first administrator; there is no endpoint to make others yet.
+is its first administrator, and administrators make others (`organisations.members.grantAdmin`). They also give a
+member `streamPublisher` on its own (`organisations.members.grantPublisher`): going live from a browser, and reading
+and replacing stream keys (docs/shows.md, Going live), which administrators hold as part of their role. The member
+list and the organisation list carry the grants each holds, so a client that asks whether someone may go live checks
+for either role.
 
 Administrators create, list and cancel invitations in their request session (`src/services/invitations.ts`): that
 changes no grants, so row-level security alone decides who may. The invitee's side (reading an invitation by its link,
@@ -241,8 +255,8 @@ lists the roles it checks itself (`requireAdmin`, `keepAnotherAdmin`) in its own
 
 What each organisation runs, in `src/db/schemas/`: networks, devices of three kinds, cameras, agents (which serve the
 network they are on, one active at a time) and signed-in browsers, gateways, streams with a source device, their
-exposures (gateway, renditions, publisher, upstream) and recorders (always backed by an exposure of the same stream,
-recording one of its renditions).
+exposures (gateway, publisher, upstream) and recorders (always backed by an exposure of the same stream, recording
+the largest picture it carries).
 
 Every row binds to its organisation's scope through `organisation_id`: `organisationMember` reads it all and
 `organisationAdmin` manages it, in the request session. References between rows are composite foreign keys that
@@ -256,8 +270,8 @@ endpoint ID (the public key bytes in lowercase hex, unique). The private key, th
 trusted code can read it. The kind and identity never change.
 
 Everything else belongs to the device's kind, a table whose row shares the device's ID: a `camera` adds its `settings`,
-which name the driver that reads it (`src/cameras/drivers.ts`: `axis`, which produces any rendition its resolutions
-allow, or `rtsp`, one stream as it comes) and where its streams are, and its `credentials`, encrypted and write-only; an `agent` adds the network it serves (the device's own),
+which name the driver that reads it (`src/cameras/drivers.ts`: `axis`, which can also encode a smaller picture within
+its resolutions, or `rtsp`, one stream as it comes) and where its streams are, and its `credentials`, encrypted and write-only; an `agent` adds the network it serves (the device's own),
 its standby priority and whether it is active. Each kind's table carries its kind as a generated column in a composite
 foreign key to the device, so a device is only ever the kind it was created as. `POST …/cameras` and `POST …/agents`
 create the device, with its identity, and its kind's row together, and their `DELETE` removes both. Their routes
@@ -303,30 +317,37 @@ defined in code rather than stored, always on the internet, and identified by th
 the deployment, so they show no `settings`. `…/gateways` lists them first, then the organisation's own (`builtin`
 tells them apart), and reads either; changing or removing a built-in gateway is 403 `forbidden`.
 
-An `exposure` delivers a stream to one gateway, built in or the organisation's own, offering the `renditions` it lists:
-qualities from a fixed vocabulary, `default` (the source as it comes), `data_saver`, `balanced` and `quality`, so a
-reader chooses the same way on every stream. Whether a source or publisher can produce anything but `default` is the
-configuration builders' to decide. Its `gatewayId` is a slug or a UUID, and no foreign key: the code checks that it
+An `exposure` delivers a stream to one gateway, built in or the organisation's own: the one picture its source gives,
+and, where its protocol can carry them (a MoQ broadcast's catalog), smaller pictures beside it, which the system
+decides from what the source can do and nobody configures (none yet: see `docs/shows.md`, Delivery). Its `gatewayId` is a slug or a UUID, and no foreign key: the code checks that it
 names a gateway of the organisation (422 `invalid_reference`), and refuses removing a gateway an exposure uses (409
 `in_use`). Its publisher, the device that sends it there, is `publisherDeviceId` when pinned, or (null) whichever the
 configuration builders choose: the source camera itself when its capabilities allow, or an agent on its network. What
 it publishes is the stream's source, or `upstreamExposureId`, another exposure of the same stream, so exposures chain:
-a camera into MediaMTX on its network, then an agent from there to a relay on the internet. Along a chain, an exposure
-offers at most its upstream's renditions (422 `rendition_not_offered`), and cannot stop offering one an exposure
-downstream of it, or a recorder of it, uses (409 `in_use`). A chain cannot loop (409 `exposure_cycle`), and an
-exposure another uses as its upstream cannot be deleted (409 `in_use`). The database checks the other references;
-`src/topology/exposures.ts` checks the gateway, the chain and the renditions along it, after the write, so row-level
+a camera into MediaMTX on its network, then an agent from there to a relay on the internet. A chain cannot loop (409
+`exposure_cycle`), and an exposure another uses as its upstream cannot be deleted (409 `in_use`). The database checks
+the other references; `src/topology/exposures.ts` checks the gateway and the chain, after the write, so row-level
 security has already refused a principal who may not make it, under a per-stream advisory lock so two concurrent
 changes cannot each leave half an inconsistency, and sharing the gateway's row lock so its removal is serialised with
 the write.
 
 Readers choose a protocol when they connect (`…/exposures/{exposureId}/connections`), among the gateway's egress
-protocols. One that carries a rendition per connection (RTSP, WebRTC, HLS: each a MediaMTX path of its own,
-`{exposureId}/{rendition}`) needs one chosen when the exposure offers several (422 `rendition_required`); MoQ carries
-every rendition as a track of one broadcast. Publishers connect the same way, by an ingest protocol.
+protocols, and say what size they need only to a MoQ player: a protocol by URL (RTSP, WebRTC, HLS) carries the one
+picture, at an exposure's MediaMTX path, `{exposureId}/live`; a MoQ broadcast's catalog lists each picture it has by
+its size. Publishers connect the same way, by an ingest protocol. A stream read or published by whatever delivers it
+(`organisations.streams.connect`, docs/shows.md) is given a MediaMTX gateway only by a protocol it has a server for
+now: one its agent registered (`…/gateways/{gatewayId}/endpoints`) or its settings override (`served`,
+`src/gateways/provider.ts`), so it is never handed one to be refused `gateway_unavailable`. The operation versions released before renditions
+went (`src/topology/renditions.ts`) answer as if every exposure, recorder and preview offered `default` alone, accept
+the `renditions` an old client sends, and refuse any other rendition to connect to or record (422
+`rendition_not_offered`).
 
 There are no stored configuration revisions: a device's configuration is to be derived from the topology when it asks
-for it.
+for it. Part of it is who reports about each exposure on a gateway whose relays publish stats, conservation.tv
+(`selectRelayCoverage`, `src/configuration/plan/helpers.ts`): exactly one agent, the one that delivers it, otherwise
+the organisation's oldest active agent, which watches it on the relay, so an exposure a browser publishes straight
+there is reported about too (`deviceConfiguration.get` v4's `relays`; docs/shows.md, Health and stats without an
+agent).
 
 #### Gateway hostnames and certificates
 
@@ -438,7 +459,8 @@ cluster's configuration before migrating.
 Not built yet: provisioning an agent or camera with its private key, rotating or revoking a device identity, the
 failover from expired agent state, choosing a
 publisher for an exposure that pins none (`deviceConfiguration.get` plans only the active agent's MediaMTX gateway and
-what is pinned to it), transcoding renditions a camera cannot produce, and sharing across organisations.
+what is pinned to it), smaller pictures beside an exposure's own (docs/shows.md, Delivery), and sharing across
+organisations.
 
 ### Health
 
@@ -459,8 +481,8 @@ stream, is `null`, and the studio rolls it up from its parts) forms the reporter
 2. `evaluate`: a verdict and its findings, from the reporter's metrics, which it reads as it needs them through a
    client scoped to the subject, the reporter and the newest report's time (`src/health/metrics.ts`: `over(seconds)`,
    an hour back at most, so each finding says what window it judged). Usually the worst of a few checks (`allOf` of
-   `share`, `floor` and `ceiling` in `src/health/checks.ts`), each judging the worst series of its metric, such as an
-   exposure's worst rendition, and citing it.
+   `share`, `floor` and `ceiling` in `src/health/checks.ts`), each judging the worst series of its metric, and citing
+   it.
 3. `settle`: whether to take the verdict yet (`hysteresis`, by time: worse at once, better after a minute, unless the
    evaluator says otherwise), so a subject doesn't flap.
 

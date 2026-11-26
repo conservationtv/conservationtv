@@ -23,11 +23,20 @@ const categories = {
     description: 'A referenced resource does not exist, is not visible to you, or belongs to another organisation.'
   },
   unsupported_protocol: { status: 422, description: 'The gateway is not read or published by that protocol.' },
-  rendition_not_offered: { status: 422, description: 'The exposure does not offer that rendition.' },
-  rendition_required: {
+  no_delivery: {
     status: 422,
-    description: 'The exposure offers several renditions, and the protocol carries one: choose which.'
+    description: 'Nothing delivers the stream where you can read it, by any protocol you named.'
   },
+  no_ingest: {
+    status: 422,
+    description: 'No gateway takes the stream where you are publishing from, by any protocol you named.'
+  },
+  not_pushed: {
+    status: 409,
+    description: 'The stream comes from a source of its own: only a stream with none is published to.'
+  },
+  // Only the operation versions that name renditions refuse one (src/topology/renditions.ts).
+  rendition_not_offered: { status: 422, description: 'The exposure does not offer that rendition.' },
   invalid_settings: {
     status: 422,
     description: 'The settings are not what a gateway of that kind is registered with.'

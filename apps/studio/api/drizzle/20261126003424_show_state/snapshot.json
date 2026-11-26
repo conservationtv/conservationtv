@@ -1,0 +1,948 @@
+{
+  "type": "diff",
+  "version": "10",
+  "dialect": "postgres",
+  "id": "a5201054-d13b-49dc-aaea-0fa49dbad1c7",
+  "prevIds": [
+    "59d732bd-379b-46ed-beab-f0df43e4c1dd"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "show_stream"
+      ],
+      "writes": [
+        "s|tbl|public.show_stream",
+        "n|tbl|public.show_stream",
+        "e|tbl|public.show_stream",
+        "n|rel|public.show_stream",
+        "n|type|public.show_stream",
+        "n|rel|public.show_stream_pk"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "stream",
+        "code"
+      ],
+      "writes": [
+        "s|col|public.stream.code",
+        "n|col|public.stream.code",
+        "e|col|public.stream.code"
+      ],
+      "reads": [
+        "n|tbl|public.stream",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "show",
+        "slots"
+      ],
+      "writes": [
+        "s|col|public.show.slots",
+        "n|col|public.show.slots",
+        "e|col|public.show.slots"
+      ],
+      "reads": [
+        "n|tbl|public.show",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "show",
+        "volume_db"
+      ],
+      "writes": [
+        "s|col|public.show.volume_db",
+        "n|col|public.show.volume_db",
+        "e|col|public.show.volume_db"
+      ],
+      "reads": [
+        "n|tbl|public.show",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "show",
+        "muted"
+      ],
+      "writes": [
+        "s|col|public.show.muted",
+        "n|col|public.show.muted",
+        "e|col|public.show.muted"
+      ],
+      "reads": [
+        "n|tbl|public.show",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "show",
+        "takeover_stream_id"
+      ],
+      "writes": [
+        "s|col|public.show.takeover_stream_id",
+        "n|col|public.show.takeover_stream_id",
+        "e|col|public.show.takeover_stream_id"
+      ],
+      "reads": [
+        "n|tbl|public.show",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "show",
+        "takeover_live"
+      ],
+      "writes": [
+        "s|col|public.show.takeover_live",
+        "n|col|public.show.takeover_live",
+        "e|col|public.show.takeover_live"
+      ],
+      "reads": [
+        "n|tbl|public.show",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "output",
+        "input_gateway_id"
+      ],
+      "writes": [
+        "s|col|public.output.input_gateway_id",
+        "n|col|public.output.input_gateway_id",
+        "e|col|public.output.input_gateway_id"
+      ],
+      "reads": [
+        "n|tbl|public.output",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_unique",
+      "statementTarget": [
+        "table",
+        "public",
+        "stream"
+      ],
+      "writes": [
+        "s|uq|public.stream.stream_organisation_code",
+        "n|uq|public.stream.stream_organisation_code",
+        "e|uq|public.stream.stream_organisation_code",
+        "n|con|public.stream.stream_organisation_code",
+        "n|rel|public.stream_organisation_code"
+      ],
+      "reads": [
+        "n|tbl|public.stream",
+        "n|sch|public",
+        "n|col|public.stream.organisation_id",
+        "n|col|public.stream.code"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "show_stream",
+        "show_stream_stream_idx"
+      ],
+      "writes": [
+        "s|idx|public.show_stream_stream_idx",
+        "n|idx|public.show_stream_stream_idx",
+        "e|idx|public.show_stream_stream_idx",
+        "n|rel|public.show_stream_stream_idx"
+      ],
+      "reads": [
+        "n|tbl|public.show_stream",
+        "n|sch|public",
+        "n|col|public.show_stream.stream_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "show_stream",
+        "show_stream_audio_stream_idx"
+      ],
+      "writes": [
+        "s|idx|public.show_stream_audio_stream_idx",
+        "n|idx|public.show_stream_audio_stream_idx",
+        "e|idx|public.show_stream_audio_stream_idx",
+        "n|rel|public.show_stream_audio_stream_idx"
+      ],
+      "reads": [
+        "n|tbl|public.show_stream",
+        "n|sch|public",
+        "n|col|public.show_stream.audio_stream_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "show_stream",
+        "show_stream_organisation_idx"
+      ],
+      "writes": [
+        "s|idx|public.show_stream_organisation_idx",
+        "n|idx|public.show_stream_organisation_idx",
+        "e|idx|public.show_stream_organisation_idx",
+        "n|rel|public.show_stream_organisation_idx"
+      ],
+      "reads": [
+        "n|tbl|public.show_stream",
+        "n|sch|public",
+        "n|col|public.show_stream.organisation_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "show",
+        "show_takeover_stream_idx"
+      ],
+      "writes": [
+        "s|idx|public.show_takeover_stream_idx",
+        "n|idx|public.show_takeover_stream_idx",
+        "e|idx|public.show_takeover_stream_idx",
+        "n|rel|public.show_takeover_stream_idx"
+      ],
+      "reads": [
+        "n|tbl|public.show",
+        "n|sch|public",
+        "n|col|public.show.takeover_stream_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "show_stream"
+      ],
+      "writes": [
+        "s|fk|public.show_stream.show_stream_organisation_id_organisation_id_fkey",
+        "n|fk|public.show_stream.show_stream_organisation_id_organisation_id_fkey",
+        "e|fk|public.show_stream.show_stream_organisation_id_organisation_id_fkey",
+        "n|con|public.show_stream.show_stream_organisation_id_organisation_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.show_stream",
+        "n|sch|public",
+        "n|tbl|public.organisation",
+        "n|sch|public",
+        "n|col|public.show_stream.organisation_id",
+        "n|col|public.organisation.id",
+        "e|uniqueness|public.organisation.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "show_stream"
+      ],
+      "writes": [
+        "s|fk|public.show_stream.show_stream_show_fk",
+        "n|fk|public.show_stream.show_stream_show_fk",
+        "e|fk|public.show_stream.show_stream_show_fk",
+        "n|con|public.show_stream.show_stream_show_fk"
+      ],
+      "reads": [
+        "n|tbl|public.show_stream",
+        "n|sch|public",
+        "n|tbl|public.show",
+        "n|sch|public",
+        "n|col|public.show_stream.organisation_id",
+        "n|col|public.show_stream.show_id",
+        "n|col|public.show.organisation_id",
+        "n|col|public.show.id",
+        "e|uniqueness|public.show.id.organisation_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "show_stream"
+      ],
+      "writes": [
+        "s|fk|public.show_stream.show_stream_stream_fk",
+        "n|fk|public.show_stream.show_stream_stream_fk",
+        "e|fk|public.show_stream.show_stream_stream_fk",
+        "n|con|public.show_stream.show_stream_stream_fk"
+      ],
+      "reads": [
+        "n|tbl|public.show_stream",
+        "n|sch|public",
+        "n|tbl|public.stream",
+        "n|sch|public",
+        "n|col|public.show_stream.organisation_id",
+        "n|col|public.show_stream.stream_id",
+        "n|col|public.stream.organisation_id",
+        "n|col|public.stream.id",
+        "e|uniqueness|public.stream.id.organisation_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "show_stream"
+      ],
+      "writes": [
+        "s|fk|public.show_stream.show_stream_audio_stream_fk",
+        "n|fk|public.show_stream.show_stream_audio_stream_fk",
+        "e|fk|public.show_stream.show_stream_audio_stream_fk",
+        "n|con|public.show_stream.show_stream_audio_stream_fk"
+      ],
+      "reads": [
+        "n|tbl|public.show_stream",
+        "n|sch|public",
+        "n|tbl|public.stream",
+        "n|sch|public",
+        "n|col|public.show_stream.organisation_id",
+        "n|col|public.show_stream.audio_stream_id",
+        "n|col|public.stream.organisation_id",
+        "n|col|public.stream.id",
+        "e|uniqueness|public.stream.id.organisation_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "show"
+      ],
+      "writes": [
+        "s|fk|public.show.show_takeover_stream_fk",
+        "n|fk|public.show.show_takeover_stream_fk",
+        "e|fk|public.show.show_takeover_stream_fk",
+        "n|con|public.show.show_takeover_stream_fk"
+      ],
+      "reads": [
+        "n|tbl|public.show",
+        "n|sch|public",
+        "n|tbl|public.stream",
+        "n|sch|public",
+        "n|col|public.show.organisation_id",
+        "n|col|public.show.takeover_stream_id",
+        "n|col|public.stream.organisation_id",
+        "n|col|public.stream.id",
+        "e|uniqueness|public.stream.id.organisation_id"
+      ]
+    },
+    {
+      "statementType": "add_check",
+      "statementTarget": [
+        "table",
+        "public",
+        "stream"
+      ],
+      "writes": [
+        "s|ck|public.stream.stream_code",
+        "n|ck|public.stream.stream_code",
+        "e|ck|public.stream.stream_code",
+        "n|con|public.stream.stream_code"
+      ],
+      "reads": [
+        "n|tbl|public.stream",
+        "n|sch|public",
+        "n|col|public.stream.code"
+      ]
+    },
+    {
+      "statementType": "add_check",
+      "statementTarget": [
+        "table",
+        "public",
+        "show"
+      ],
+      "writes": [
+        "s|ck|public.show.show_slots",
+        "n|ck|public.show.show_slots",
+        "e|ck|public.show.show_slots",
+        "n|con|public.show.show_slots"
+      ],
+      "reads": [
+        "n|tbl|public.show",
+        "n|sch|public",
+        "n|col|public.show.slots"
+      ]
+    },
+    {
+      "statementType": "add_check",
+      "statementTarget": [
+        "table",
+        "public",
+        "show"
+      ],
+      "writes": [
+        "s|ck|public.show.show_takeover_live",
+        "n|ck|public.show.show_takeover_live",
+        "e|ck|public.show.show_takeover_live",
+        "n|con|public.show.show_takeover_live"
+      ],
+      "reads": [
+        "n|tbl|public.show",
+        "n|sch|public",
+        "n|col|public.show.takeover_stream_id",
+        "n|col|public.show.takeover_live"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "show_stream",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream",
+        "name": "code",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "show_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "stream_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "organisation_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "rank",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "volume_db",
+        "type": "double precision",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "0",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "muted",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "sync_offset_ms",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "0",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "audio_stream_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show",
+        "name": "slots",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "6",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show",
+        "name": "volume_db",
+        "type": "double precision",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "0",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show",
+        "name": "muted",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show",
+        "name": "takeover_stream_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show",
+        "name": "takeover_live",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "output",
+        "name": "input_gateway_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "show_stream_stream_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "stream_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "show_stream_audio_stream_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "audio_stream_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "show_stream_organisation_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "organisation_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show",
+        "name": "show_takeover_stream_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "takeover_stream_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "show_stream_organisation_id_organisation_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "organisation_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "organisation",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "show_stream_show_fk",
+        "nameExplicit": true,
+        "columns": [
+          "organisation_id",
+          "show_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "show",
+        "columnsTo": [
+          "organisation_id",
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "show_stream_stream_fk",
+        "nameExplicit": true,
+        "columns": [
+          "organisation_id",
+          "stream_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "stream",
+        "columnsTo": [
+          "organisation_id",
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "show_stream_audio_stream_fk",
+        "nameExplicit": true,
+        "columns": [
+          "organisation_id",
+          "audio_stream_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "stream",
+        "columnsTo": [
+          "organisation_id",
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show",
+        "name": "show_takeover_stream_fk",
+        "nameExplicit": true,
+        "columns": [
+          "organisation_id",
+          "takeover_stream_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "stream",
+        "columnsTo": [
+          "organisation_id",
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show_stream",
+        "name": "show_stream_pk",
+        "columns": [
+          "show_id",
+          "stream_id"
+        ],
+        "nameExplicit": true,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream",
+        "name": "stream_organisation_code",
+        "nameExplicit": true,
+        "columns": [
+          "organisation_id",
+          "code"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream",
+        "name": "stream_code",
+        "value": "\"code\" ~ '^[A-Z0-9]{1,4}$'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show",
+        "name": "show_slots",
+        "value": "\"slots\" between 0 and 6",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "show",
+        "name": "show_takeover_live",
+        "value": "\"takeover_stream_id\" is not null or not \"takeover_live\"",
+        "entityType": "checks"
+      }
+    }
+  ]
+}

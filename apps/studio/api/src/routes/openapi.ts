@@ -31,13 +31,15 @@ export const invalidGateway = errorResponse(
   "The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads"
 );
 export const invalidExposureReference = errorResponse(
-  'A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the exposure would offer a rendition its upstream does not'
+  'A referenced resource does not exist, is not visible to this account, or belongs to another organisation'
 );
-export const exposureInUse = errorResponse(
-  'The upstream exposure would lead back to this exposure, or it would stop offering a rendition an exposure downstream of it or a recorder uses'
-);
+export const exposureInUse = errorResponse('The upstream exposure would lead back to this exposure');
 export const invalidRecorderReference = errorResponse(
-  'The exposure does not exist, is not visible to this account, or belongs to another stream, or does not offer the rendition'
+  'The exposure does not exist, is not visible to this account, or belongs to another stream'
+);
+/** As `invalidRecorderReference`, for the versions that name a rendition: `default` is the only one offered. */
+export const invalidRecorderRendition = errorResponse(
+  'The exposure does not exist, is not visible to this account, or belongs to another stream, or the rendition is not `default`, the one every exposure offers'
 );
 export const invalidSignature = errorResponse(
   'The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest'
@@ -50,7 +52,29 @@ export const connectionRefused = errorResponse(
   'The caller may see the exposure but not connect to it like this: members only read, and devices publish what they are the pinned publisher of and read its upstreams'
 );
 export const unsupportedConnection = errorResponse(
-  "Connections to the exposure's gateway are not made through this API, the gateway is not read or published by that protocol, or the exposure does not offer the rendition, or offers several and the protocol needs one chosen"
+  "Connections to the exposure's gateway are not made through this API, or the gateway is not read or published by that protocol"
+);
+/** As `unsupportedConnection`, for the version that names a rendition: `default` is the only one offered. */
+export const unsupportedConnectionRendition = errorResponse(
+  "Connections to the exposure's gateway are not made through this API, the gateway is not read or published by that protocol, or the rendition is not `default`, the one every exposure offers"
+);
+export const noDelivery = errorResponse(
+  "Nothing delivers the stream where the caller can read it, by any protocol it named: no exposure on a gateway it reaches (the internet, or a device's own network) is read by one, or none on the gateway the caller's output reads from"
+);
+export const streamConnectionRefused = errorResponse(
+  "The caller may not connect to the stream like this: an output's agent reads what its show places, or anything of its organisation under `external` control; a member publishes with the right to (`streamPublisher`, which administrators hold), or their browser's own device for them; no other device publishes"
+);
+export const streamUndeliverable = errorResponse(
+  "Reading: nothing delivers the stream where the caller can read it, by any protocol it named (no exposure on a gateway it reaches, the internet or a device's own network, is read by one, or none on the gateway the caller's output reads from). Publishing: no gateway the publisher reaches, the internet or the network it says it is on, is published to by a protocol it named"
+);
+export const notPushed = errorResponse(
+  'The stream comes from a source of its own, such as a camera: only a stream with none is published to'
+);
+export const notPublisher = errorResponse(
+  'The account may see the stream but not publish it: only members holding `streamPublisher` do, which administrators hold'
+);
+export const noIngest = errorResponse(
+  'No gateway that takes an encoder by the stream key is where the encoder says it is (the internet, or the network named), or none of its servers is known'
 );
 export const unsupportedStats = errorResponse(
   "The gateway publishes no traffic stats through this API: only built-in MoQ relays do, and no organisation's own gateway"
@@ -59,6 +83,10 @@ export const previewConnectionRefused = errorResponse(
   'The caller may see the preview but not connect to it like this: members only read, and only the agent the output runs on publishes it'
 );
 export const unsupportedPreviewConnection = errorResponse(
+  "Connections to the preview's gateway are not made through this API, or the gateway is not read or published by that protocol"
+);
+/** As `unsupportedPreviewConnection`, for the version that names a rendition: `default` is the only one offered. */
+export const unsupportedPreviewRendition = errorResponse(
   "Connections to the preview's gateway are not made through this API, the gateway is not read or published by that protocol, or the rendition is not `default`, the one a preview offers"
 );
 export const outputInUse = errorResponse('The agent runs another output: an agent runs one OBS');
