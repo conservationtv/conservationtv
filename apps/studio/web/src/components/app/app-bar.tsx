@@ -1,6 +1,6 @@
 import { Suspense, type ComponentProps, type FC } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { ListIcon, SignOutIcon, UserCircleGearIcon, UserCircleIcon } from '@phosphor-icons/react';
+import { ListIcon, RecordIcon, SignOutIcon, UserCircleGearIcon, UserCircleIcon } from '@phosphor-icons/react';
 import { Link, NavLink } from 'react-router';
 import { Button } from '@conservationtv/ui/components/button';
 import {
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger
 } from '@conservationtv/ui/components/dropdown-menu';
 import { useSidebar } from '@conservationtv/ui/hooks/use-sidebar';
+import { buttonVariants } from '@conservationtv/ui/lib/button-variants';
 import { cn } from '@conservationtv/ui/lib/utils';
 
 import { PinIcon } from '@/components/app/pins';
@@ -30,6 +31,7 @@ import { pinListQueryOptions } from '@/queries/this-device';
 //     <AppBarSidebarTrigger />
 //     <AppBarHome />
 //     <AppBarTitle>Serval Reserve</AppBarTitle>
+//     <AppBarGoLive />
 //     <AppBarAccount />
 //   </AppBar>
 
@@ -80,6 +82,19 @@ export const AppBarHome: FC = () => {
 /** What the bar is over, in a line, cut to fit: the organisation, say. Takes the room between the ends. */
 export const AppBarTitle: FC<ComponentProps<'span'>> = ({ className, ...props }) => {
   return <span className={cn('min-w-0 flex-1 truncate text-sm font-medium text-foreground', className)} {...props} />;
+};
+
+/** Going live, in one tap: the organisation's Go live page, relative to the organisation layout it is under. */
+export const AppBarGoLive: FC = () => {
+  return (
+    <NavLink
+      to="live"
+      aria-label="Go live"
+      className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'size-9')}
+    >
+      <RecordIcon />
+    </NavLink>
+  );
 };
 
 /**

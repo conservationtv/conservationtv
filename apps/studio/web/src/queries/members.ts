@@ -70,6 +70,39 @@ export function useRevokeAdmin(organisationId: string) {
   });
 }
 
+/** Let a member go live, without making them an administrator. */
+export function useGrantPublisher(organisationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const result = await api.organisations.members.grantPublisher.v1({ id: organisationId, userId });
+      if (result instanceof Error) throw result;
+    },
+    // The signed-in account's own roles come with its organisations.
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['members', organisationId] }),
+        client.invalidateQueries({ queryKey: ['organisations', 'list'] })
+      ])
+  });
+}
+
+/** Stop a member going live, as they were let on their own: an administrator keeps it. */
+export function useRevokePublisher(organisationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const result = await api.organisations.members.revokePublisher.v1({ id: organisationId, userId });
+      if (result instanceof Error) throw result;
+    },
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['members', organisationId] }),
+        client.invalidateQueries({ queryKey: ['organisations', 'list'] })
+      ])
+  });
+}
+
 /** Remove a member; `me` is the signed-in account leaving. Refused for the last administrator. */
 export function useRemoveMember(organisationId: string) {
   const client = useQueryClient();

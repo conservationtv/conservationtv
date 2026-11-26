@@ -1,0 +1,605 @@
+{
+  "type": "diff",
+  "version": "10",
+  "dialect": "postgres",
+  "id": "90b890f0-f55d-4232-8d56-7da2f0917184",
+  "prevIds": [
+    "202a3ff1-63d6-4071-8d8a-5e9aef114780"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "personal_stream"
+      ],
+      "writes": [
+        "s|tbl|public.personal_stream",
+        "n|tbl|public.personal_stream",
+        "e|tbl|public.personal_stream",
+        "n|rel|public.personal_stream",
+        "n|type|public.personal_stream",
+        "n|rel|public.personal_stream_pkey",
+        "n|rel|public.personal_stream_stream"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "stream_key"
+      ],
+      "writes": [
+        "s|tbl|public.stream_key",
+        "n|tbl|public.stream_key",
+        "e|tbl|public.stream_key",
+        "n|rel|public.stream_key",
+        "n|type|public.stream_key",
+        "n|rel|public.stream_key_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "personal_stream",
+        "personal_stream_user_idx"
+      ],
+      "writes": [
+        "s|idx|public.personal_stream_user_idx",
+        "n|idx|public.personal_stream_user_idx",
+        "e|idx|public.personal_stream_user_idx",
+        "n|rel|public.personal_stream_user_idx"
+      ],
+      "reads": [
+        "n|tbl|public.personal_stream",
+        "n|sch|public",
+        "n|col|public.personal_stream.user_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "stream_key",
+        "stream_key_organisation_idx"
+      ],
+      "writes": [
+        "s|idx|public.stream_key_organisation_idx",
+        "n|idx|public.stream_key_organisation_idx",
+        "e|idx|public.stream_key_organisation_idx",
+        "n|rel|public.stream_key_organisation_idx"
+      ],
+      "reads": [
+        "n|tbl|public.stream_key",
+        "n|sch|public",
+        "n|col|public.stream_key.organisation_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "personal_stream"
+      ],
+      "writes": [
+        "s|fk|public.personal_stream.personal_stream_organisation_id_organisation_id_fkey",
+        "n|fk|public.personal_stream.personal_stream_organisation_id_organisation_id_fkey",
+        "e|fk|public.personal_stream.personal_stream_organisation_id_organisation_id_fkey",
+        "n|con|public.personal_stream.personal_stream_organisation_id_organisation_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.personal_stream",
+        "n|sch|public",
+        "n|tbl|public.organisation",
+        "n|sch|public",
+        "n|col|public.personal_stream.organisation_id",
+        "n|col|public.organisation.id",
+        "e|uniqueness|public.organisation.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "personal_stream"
+      ],
+      "writes": [
+        "s|fk|public.personal_stream.personal_stream_stream_fk",
+        "n|fk|public.personal_stream.personal_stream_stream_fk",
+        "e|fk|public.personal_stream.personal_stream_stream_fk",
+        "n|con|public.personal_stream.personal_stream_stream_fk"
+      ],
+      "reads": [
+        "n|tbl|public.personal_stream",
+        "n|sch|public",
+        "n|tbl|public.stream",
+        "n|sch|public",
+        "n|col|public.personal_stream.organisation_id",
+        "n|col|public.personal_stream.stream_id",
+        "n|col|public.stream.organisation_id",
+        "n|col|public.stream.id",
+        "e|uniqueness|public.stream.id.organisation_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "personal_stream"
+      ],
+      "writes": [
+        "s|fk|public.personal_stream.personal_stream_membership_fk",
+        "n|fk|public.personal_stream.personal_stream_membership_fk",
+        "e|fk|public.personal_stream.personal_stream_membership_fk",
+        "n|con|public.personal_stream.personal_stream_membership_fk"
+      ],
+      "reads": [
+        "n|tbl|public.personal_stream",
+        "n|sch|public",
+        "n|tbl|public.organisation_membership",
+        "n|sch|public",
+        "n|col|public.personal_stream.organisation_id",
+        "n|col|public.personal_stream.user_id",
+        "n|col|public.organisation_membership.organisation_id",
+        "n|col|public.organisation_membership.user_id",
+        "e|uniqueness|public.organisation_membership.organisation_id.user_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "stream_key"
+      ],
+      "writes": [
+        "s|fk|public.stream_key.stream_key_organisation_id_organisation_id_fkey",
+        "n|fk|public.stream_key.stream_key_organisation_id_organisation_id_fkey",
+        "e|fk|public.stream_key.stream_key_organisation_id_organisation_id_fkey",
+        "n|con|public.stream_key.stream_key_organisation_id_organisation_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.stream_key",
+        "n|sch|public",
+        "n|tbl|public.organisation",
+        "n|sch|public",
+        "n|col|public.stream_key.organisation_id",
+        "n|col|public.organisation.id",
+        "e|uniqueness|public.organisation.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "stream_key"
+      ],
+      "writes": [
+        "s|fk|public.stream_key.stream_key_stream_fk",
+        "n|fk|public.stream_key.stream_key_stream_fk",
+        "e|fk|public.stream_key.stream_key_stream_fk",
+        "n|con|public.stream_key.stream_key_stream_fk"
+      ],
+      "reads": [
+        "n|tbl|public.stream_key",
+        "n|sch|public",
+        "n|tbl|public.stream",
+        "n|sch|public",
+        "n|col|public.stream_key.organisation_id",
+        "n|col|public.stream_key.stream_id",
+        "n|col|public.stream.organisation_id",
+        "n|col|public.stream.id",
+        "e|uniqueness|public.stream.id.organisation_id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "personal_stream",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "stream_key",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "personal_stream",
+        "name": "organisation_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "personal_stream",
+        "name": "user_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "personal_stream",
+        "name": "device",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "personal_stream",
+        "name": "stream_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "personal_stream",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream_key",
+        "name": "stream_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream_key",
+        "name": "organisation_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream_key",
+        "name": "key",
+        "type": "bytea",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream_key",
+        "name": "key_sha256",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream_key",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "personal_stream",
+        "name": "personal_stream_user_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "user_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream_key",
+        "name": "stream_key_organisation_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "organisation_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "personal_stream",
+        "name": "personal_stream_organisation_id_organisation_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "organisation_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "organisation",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "personal_stream",
+        "name": "personal_stream_stream_fk",
+        "nameExplicit": true,
+        "columns": [
+          "organisation_id",
+          "stream_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "stream",
+        "columnsTo": [
+          "organisation_id",
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "personal_stream",
+        "name": "personal_stream_membership_fk",
+        "nameExplicit": true,
+        "columns": [
+          "organisation_id",
+          "user_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "organisation_membership",
+        "columnsTo": [
+          "organisation_id",
+          "user_id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream_key",
+        "name": "stream_key_organisation_id_organisation_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "organisation_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "organisation",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream_key",
+        "name": "stream_key_stream_fk",
+        "nameExplicit": true,
+        "columns": [
+          "organisation_id",
+          "stream_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "stream",
+        "columnsTo": [
+          "organisation_id",
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "personal_stream",
+        "name": "personal_stream_pkey",
+        "columns": [
+          "organisation_id",
+          "user_id",
+          "device"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream_key",
+        "name": "stream_key_pkey",
+        "columns": [
+          "stream_id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "personal_stream",
+        "name": "personal_stream_stream",
+        "nameExplicit": true,
+        "columns": [
+          "stream_id"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "personal_stream",
+        "name": "personal_stream_device",
+        "value": "device in ('phone', 'computer')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "stream_key",
+        "name": "stream_key_sha256_hex",
+        "value": "\"key_sha256\" ~ '^[0-9a-f]{64}$'",
+        "entityType": "checks"
+      }
+    }
+  ]
+}

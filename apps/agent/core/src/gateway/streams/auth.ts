@@ -2,16 +2,24 @@ import type { DeviceIdentity, MediamtxAuth } from '@conservationtv/studio-sdk';
 import { serve, type ServerType } from '@hono/node-server';
 import { sValidator } from '@hono/standard-validator';
 import { Hono } from 'hono';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { createLocalJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
 
 // Who MediaMTX admits, answered by the agent itself: MediaMTX asks over HTTP (`authMethod: http`) before every read
 // and publish. A reader or publisher on this machine is admitted as it is: anything running here already has the
 // camera's credentials (in MediaMTX's config) and the agent's identity, so a token would add nothing. That is how the
-// moq CLI publishers read renditions over RTMP, which cannot carry a token. Anyone else needs a token the studio API
+// moq CLI publishers read their paths over RTMP, which cannot carry a token. Anyone else needs a token the studio API
 // signed for this gateway with the agent's own identity, admitting that action on that path, checked as MediaMTX's
 // own JWT method would against the agent's public key: the agent holds it, so nothing is fetched from anywhere. It
 // serves that key as a JWKS beside the answers, for a MediaMTX that checks tokens itself (`authJWTJWKS`).
+//
+// An encoder that only takes a URL (OBS, a phone's streaming app) cannot be given a token that lasts, so a pushed
+// stream's path (docs/shows.md, Going live) also admits a publisher presenting the stream's key: as `key` in the URL's
+// query (RTMP's stream key `live?key=<key>`), as a bearer token (WHIP), or as the password. The configuration gives
+// the agent only the key's SHA-256 (`keySha256`, paths.ts), so neither it nor its logs ever hold the key itself, and
+// a key offered is compared by its digest. A key admits publishing that one path and nothing else; a replaced key's
+// digest is gone with the next configuration. The answers say only yes or no, and log nothing of what was offered.
 //
 // MediaMTX lives and dies with the agent (runtime.ts), so it is never running without these answers.
 
@@ -54,15 +62,44 @@ function offeredToken(request: AuthRequest) {
   return token ?? '';
 }
 
+/** What was offered as a stream key: `key` in the query, else the bearer token, else the password. */
+function offeredKey(request: AuthRequest) {
+  const query = new URLSearchParams(request.query);
+  return query.get('key') || request.token || request.password;
+}
+
+/** Whether `key` is the one whose SHA-256 is `digest`, compared in constant time. */
+function isKey(key: string, digest: string): boolean {
+  const offered = createHash('sha256').update(key).digest();
+  const expected = Buffer.from(digest, 'hex');
+  return offered.length === expected.length && timingSafeEqual(offered, expected);
+}
+
+/** Whether the request publishes a pushed path with its stream's key: the only thing a key admits. */
+function keyAdmits(request: AuthRequest, keys: KeyDigests): boolean {
+  if (request.action !== 'publish') return false;
+  const digest = keys().get(request.path);
+  if (digest === undefined) return false;
+  const key = offeredKey(request);
+  return key !== '' && isKey(key, digest);
+}
+
 function permits(permissions: Permissions, request: AuthRequest) {
   return permissions.some(({ action, path }) => action === request.action && (path === '' || path === request.path));
 }
 
 type JwksKeys = ReturnType<typeof createLocalJWKSet>;
 
-/** Whether MediaMTX should admit what it asked about: anything from this machine, or what a token admits. */
-async function admits(request: AuthRequest, auth: MediamtxAuth, keys: JwksKeys): Promise<boolean> {
+/** Each pushed path's key digest now, by the path's name: read at every ask, as the configuration changes. */
+export type KeyDigests = () => ReadonlyMap<string, string>;
+
+/**
+ * Whether MediaMTX should admit what it asked about: anything from this machine, a publisher with a pushed path's
+ * stream key, or what a token admits.
+ */
+async function admits(request: AuthRequest, auth: MediamtxAuth, keys: JwksKeys, digests: KeyDigests): Promise<boolean> {
   if (isTrustedLocally(request)) return true;
+  if (keyAdmits(request, digests)) return true;
   const token = offeredToken(request);
   if (token === '') return false;
   const { payload } = await jwtVerify(token, keys, { issuer: auth.issuer, audience: auth.audience });
@@ -71,11 +108,11 @@ async function admits(request: AuthRequest, auth: MediamtxAuth, keys: JwksKeys):
 }
 
 /**
- * Answers MediaMTX's authentication requests by tokens signed as `identity`, issued and scoped as `auth` says, and
- * serves `identity`'s JWKS. Anything malformed or failing is refused, as is anything asked elsewhere, which Hono
- * answers 404.
+ * Answers MediaMTX's authentication requests by tokens signed as `identity`, issued and scoped as `auth` says, and by
+ * the stream keys whose digests `digests` gives now, and serves `identity`'s JWKS. Anything malformed or failing is
+ * refused, as is anything asked elsewhere, which Hono answers 404.
  */
-export function createMediamtxAuthApp(auth: MediamtxAuth, identity: DeviceIdentity): Hono {
+export function createMediamtxAuthApp(auth: MediamtxAuth, identity: DeviceIdentity, digests: KeyDigests): Hono {
   const jwks = { keys: [identity.publicJwk] };
   const keys = createLocalJWKSet(jwks);
   const app = new Hono()
@@ -86,7 +123,7 @@ export function createMediamtxAuthApp(auth: MediamtxAuth, identity: DeviceIdenti
         if (!result.success) return c.body(null, 401);
       }),
       async c => {
-        const admitted = await admits(c.req.valid('json'), auth, keys);
+        const admitted = await admits(c.req.valid('json'), auth, keys, digests);
         return c.body(null, admitted ? 200 : 401);
       }
     )

@@ -12,8 +12,14 @@ export type HeldRole = ListedMember['roles'][number];
 /** Every member holds it. */
 export const MEMBER_ROLE = '@shared/organisationMember';
 
-/** The role that lets its holders change the organisation: the only one granted by hand. */
+/** The role that lets its holders change the organisation, granted by hand. */
 export const ADMINISTRATOR_ROLE = '@shared/organisationAdmin';
+
+/**
+ * The role that lets its holders go live, and read and replace stream keys: granted by hand, and part of being an
+ * administrator, which the roles a member is listed with don't spell out.
+ */
+export const PUBLISHER_ROLE = '@shared/streamPublisher';
 
 /** A role and what it lets its holder do. */
 export interface RoleDefinition {
@@ -33,6 +39,12 @@ export const PERSON_ROLES: readonly RoleDefinition[] = [
     id: ADMINISTRATOR_ROLE,
     label: 'Administrator',
     description: 'Manage the organisation, its members, their profiles and its invitations, and its stream topology.'
+  },
+  {
+    id: PUBLISHER_ROLE,
+    label: 'Publisher',
+    description:
+      'Go live on the organisation’s streams from a browser, and read and replace the stream keys encoders publish them with. Administrators have it as part of their role.'
   }
 ];
 
@@ -60,6 +72,11 @@ export function holds(member: ListedMember, roleId: string): boolean {
 /** Whether the member is one of the organisation's administrators. */
 export function isAdministrator(member: ListedMember): boolean {
   return holds(member, ADMINISTRATOR_ROLE);
+}
+
+/** Whether roles held include the right to go live: given on its own, or as part of being an administrator. */
+export function mayPublish(roles: readonly HeldRole[]): boolean {
+  return roles.some(role => role.id === PUBLISHER_ROLE || role.id === ADMINISTRATOR_ROLE);
 }
 
 /** The roles worth a badge beside a member: all they hold but Member, which everyone holds. */

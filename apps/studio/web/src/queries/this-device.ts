@@ -2,6 +2,7 @@ import { queryOptions, useMutation, useQueryClient, type QueryClient } from '@ta
 
 import { readCameraSurfaceMode, writeCameraSurfaceMode, type CameraSurfaceMode } from '@/lib/camera-surface-mode';
 import { readKnownAccounts, writeKnownAccounts, type KnownAccounts } from '@/lib/known-device';
+import { readLiveSourceDismissals, writeLiveSourceDismissals } from '@/lib/live-source-dismissals';
 import { readPins, withoutPin, withPinToggled, writePins, type Pin } from '@/lib/pins';
 
 // What this browser knows and can do, independent of who is signed in: kept when the session changes, under the
@@ -92,5 +93,25 @@ export function useSetCameraSurfaceMode() {
       return mode;
     },
     onSuccess: mode => client.setQueryData(cameraSurfaceModeQueryOptions().queryKey, mode)
+  });
+}
+
+/** The streams that went live which this viewer dismissed from the show's prompt; see src/lib/live-source-dismissals.ts. */
+export const liveSourceDismissalsQueryOptions = (showId: string) =>
+  queryOptions({
+    queryKey: ['this-device', 'live-source-dismissals', showId] as const,
+    queryFn: async () => readLiveSourceDismissals(showId),
+    staleTime: Infinity
+  });
+
+/** Replace the show's dismissals: written to storage, and the query's cache set to them. */
+export function useSetLiveSourceDismissals(showId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (streamIds: string[]) => {
+      writeLiveSourceDismissals(showId, streamIds);
+      return streamIds;
+    },
+    onSuccess: streamIds => client.setQueryData(liveSourceDismissalsQueryOptions(showId).queryKey, streamIds)
   });
 }

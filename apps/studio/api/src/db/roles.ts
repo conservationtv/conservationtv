@@ -54,3 +54,16 @@ export const channelBroadcaster = role('channelBroadcaster', {
   description: "Read the organisation's stream keys and channel tokens, to send its broadcast out.",
   assignableScopes: ['organisation']
 });
+
+/**
+ * Who may go live (docs/shows.md, Going live): publish the organisation's pushed streams from a browser, and read,
+ * replace and remove the keys encoders publish them with (src/db/schemas/publishing.ts). Included in
+ * `organisationAdmin`, and granted on its own to members an administrator chooses (`organisations.members.
+ * grantPublisher`). No device holds it: the agents that admit an encoder are told only a digest of its key.
+ */
+export const streamPublisher = role('streamPublisher', {
+  label: 'Publisher',
+  description:
+    "Go live on the organisation's streams from a browser, and read and replace their encoders' stream keys.",
+  assignableScopes: ['organisation']
+});

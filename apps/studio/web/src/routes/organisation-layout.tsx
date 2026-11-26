@@ -7,8 +7,15 @@ import { Spinner } from '@conservationtv/ui/components/spinner';
 import { useMediaQuery } from '@conservationtv/ui/hooks/use-media-query';
 
 import type { Route } from './+types/organisation-layout';
-import { AppBar, AppBarAccount, AppBarHome, AppBarSidebarTrigger, AppBarTitle } from '@/components/app/app-bar';
-import { OrganisationName, OrganisationSidebar } from '@/components/app/organisation-sidebar';
+import {
+  AppBar,
+  AppBarAccount,
+  AppBarGoLive,
+  AppBarHome,
+  AppBarSidebarTrigger,
+  AppBarTitle
+} from '@/components/app/app-bar';
+import { OrganisationName, OrganisationSidebar, PublishersOnly } from '@/components/app/organisation-sidebar';
 import { OrganisationContext } from '@/hooks/use-organisation';
 import { organisationQueryOptions } from '@/queries/organisations';
 
@@ -45,6 +52,11 @@ const OrganisationLayout: FC<Route.ComponentProps> = ({ params }) => {
               <OrganisationName />
             </Suspense>
           </AppBarTitle>
+          <Suspense fallback={null}>
+            <PublishersOnly>
+              <AppBarGoLive />
+            </PublishersOnly>
+          </Suspense>
           <AppBarAccount />
         </AppBar>
         <OrganisationSidebar />

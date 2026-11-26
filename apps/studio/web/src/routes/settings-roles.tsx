@@ -24,8 +24,8 @@ import { memberListQueryOptions } from '@/queries/members';
 
 /**
  * What each role in the organisation lets its holders do, and which members hold the roles people can hold. Nothing
- * here changes anything: administrator is granted on the Members tab, and every other role follows from what its
- * holder is.
+ * here changes anything: administrator and publisher are granted on the Members tab, and every other role follows
+ * from what its holder is.
  */
 const SettingsRolesRoute: FC = () => {
   const organisationId = useOrganisationId();
@@ -39,8 +39,8 @@ const SettingsRolesRoute: FC = () => {
           <SectionHeading>
             <SectionTitle>People</SectionTitle>
             <SectionDescription>
-              Everyone who joins is a member. Administrator is the only role given by hand: an administrator makes
-              someone one on the Members tab.
+              Everyone who joins is a member. Administrator and Publisher are given by hand, by an administrator on the
+              Members tab. Administrators go live as part of their role.
             </SectionDescription>
           </SectionHeading>
         </SectionHeader>

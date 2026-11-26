@@ -17,7 +17,8 @@ import { specFile } from './spec-file.ts';
 // The agent's system: a converge of its keys, each fulfilled by a runtime.
 //
 //   machine                            always: the machine the agent runs on (machine/)
-//   streams, metrics, relayTraffic     the configuration's `mediamtx` section: the gateway (gateway/)
+//   streams, metrics                   the configuration's `mediamtx` section: the gateway (gateway/)
+//   relayTraffic                       its `relays` section: what the relays carry of what it covers (gateway/)
 //   probes                             that section's cameras, each asked whether it is there (cameras/)
 //   cameras                            the configuration's `cameras` section: the cameras it controls (cameras/)
 //   obs, channels, show                the configuration's `obs` and `show` sections: the output it sends out (output/)

@@ -25,6 +25,7 @@ import {
   getMembership,
   getOrganisation,
   grantAdmin,
+  grantPublisher,
   keepAnotherAdmin,
   listMembers,
   listOwnOrganisations,
@@ -33,6 +34,7 @@ import {
   requireMemberRemoval,
   requireOrganisationRemoval,
   revokeAdmin,
+  revokePublisher,
   updateOrganisation,
   updateProfile
 } from '../services/organisations.ts';
@@ -379,6 +381,76 @@ export default new Hono()
         if (!membership) throw new ApiFailure('not_found');
         await keepAnotherAdmin(id, membership.userId);
         await revokeAdmin(id, membership.userId);
+      });
+      return c.body(null, 204);
+    }
+  )
+  .put(
+    '/:id/members/:userId/publisher',
+    describeRoute({
+      operationId: 'organisations.members.grantPublisher',
+      ...operationVersion(1),
+      summary: 'Let a member go live',
+      description:
+        "Administrators only. Gives the member `streamPublisher`: going live on the organisation's streams from a browser, and reading and replacing the keys encoders publish them with. Administrators hold it as part of their role. Granting it to someone who already holds it changes nothing.",
+      responses: {
+        204: { description: 'The member may go live' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        404: notFound,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    audited('access'),
+    validator('param', MemberParamsSchema),
+    async c => {
+      const principal = useUser();
+      const { id, userId } = c.req.valid('param');
+      const memberId = userId === 'me' ? principal.id : userId;
+      await trustedTransaction(async () => {
+        await lockOrganisation(id, principal.id);
+        await requireAdmin(id, principal.id);
+        const membership = await getMembership(id, memberId);
+        if (!membership) throw new ApiFailure('not_found');
+        await grantPublisher(id, membership.userId);
+      });
+      return c.body(null, 204);
+    }
+  )
+  .delete(
+    '/:id/members/:userId/publisher',
+    describeRoute({
+      operationId: 'organisations.members.revokePublisher',
+      ...operationVersion(1),
+      summary: "Remove a member's right to go live",
+      description:
+        "Administrators only. Takes away `streamPublisher` as it was granted on its own: an administrator keeps it through their role. The member stays a member, and their streams stay the organisation's.",
+      responses: {
+        204: { description: 'The member no longer holds the role on its own' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        404: notFound,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    audited('access'),
+    validator('param', MemberParamsSchema),
+    async c => {
+      const principal = useUser();
+      const { id, userId } = c.req.valid('param');
+      const memberId = userId === 'me' ? principal.id : userId;
+      await trustedTransaction(async () => {
+        await lockOrganisation(id, principal.id);
+        await requireAdmin(id, principal.id);
+        const membership = await getMembership(id, memberId);
+        if (!membership) throw new ApiFailure('not_found');
+        await revokePublisher(id, membership.userId);
       });
       return c.body(null, 204);
     }

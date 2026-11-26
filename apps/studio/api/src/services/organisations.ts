@@ -1,12 +1,13 @@
 import { user } from '@conservationtv/umbrella';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { authorization } from '../access.ts';
-import { organisationAdmin, organisationMember } from '../db/roles.ts';
+import { organisationAdmin, organisationMember, streamPublisher } from '../db/roles.ts';
 import { organisationInvitations, organisationMemberships, organisationProfiles, organisations } from '../db/schema.ts';
 import { useAccess, useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { unchanged } from '../topology/transaction.ts';
 import { deleteOrganisationBrowsers } from './browsers.ts';
+import { dropPersonalStreamKeys } from './publishing.ts';
 
 // Organisations, their members and the roles members hold. Reads and profile edits run in whichever transaction the
 // caller is in, so in a request session row-level security decides what each account sees. Joining, leaving and
@@ -229,13 +230,16 @@ export async function updateProfile(organisationId: string, userId: string, chan
 }
 
 /**
- * End the user's membership, with every role they hold at the organisation, not only the ones membership grants. Its
- * profile goes by cascade; their browsers there, which refer to it, must go first (src/services/browsers.ts).
+ * End the user's membership, with every role they hold at the organisation, not only the ones membership grants, and
+ * the keys of their personal streams, which they may have copied into an encoder. Its profile and their personal
+ * streams' records go by cascade, so the keys go first; their browsers there, which refer to it, must go first too
+ * (src/services/browsers.ts).
  */
 export async function endMembership(organisationId: string, userId: string) {
   const db = useDB({ trusted: true });
   const access = useAccess();
   await access.at(organisationScope(organisationId)).revoke({ principal: user(userId) });
+  await dropPersonalStreamKeys(organisationId, userId);
   await db
     .delete(organisationMemberships)
     .where(and(eq(organisationMemberships.organisationId, organisationId), eq(organisationMemberships.userId, userId)));
@@ -277,8 +281,32 @@ export async function grantAdmin(organisationId: string, userId: string) {
   await access.at(organisationScope(organisationId)).grant({ principal: user(userId), role: organisationAdmin });
 }
 
-/** Take the user's administrator role away, leaving their membership. Revoking what they don't hold changes nothing. */
+/**
+ * Take the user's administrator role away, leaving their membership, and, if that leaves them without the right to
+ * publish, their personal streams' keys. Revoking what they don't hold changes nothing.
+ */
 export async function revokeAdmin(organisationId: string, userId: string) {
   const access = useAccess();
   await access.at(organisationScope(organisationId)).revoke({ principal: user(userId), role: organisationAdmin });
+  await dropPersonalStreamKeys(organisationId, userId);
+}
+
+/**
+ * Give the member the right to go live (`streamPublisher`, docs/shows.md, Going live) without making them an
+ * administrator, who holds it already. Granting it again is harmless.
+ */
+export async function grantPublisher(organisationId: string, userId: string) {
+  const access = useAccess();
+  await access.at(organisationScope(organisationId)).grant({ principal: user(userId), role: streamPublisher });
+}
+
+/**
+ * Take the right to go live away, as it was granted on its own: an administrator keeps it through their role. Once it
+ * is gone, so are their personal streams' keys, which an encoder could otherwise go on publishing with. Revoking what
+ * they don't hold changes nothing.
+ */
+export async function revokePublisher(organisationId: string, userId: string) {
+  const access = useAccess();
+  await access.at(organisationScope(organisationId)).revoke({ principal: user(userId), role: streamPublisher });
+  await dropPersonalStreamKeys(organisationId, userId);
 }
