@@ -48,7 +48,7 @@ export interface FleetContext {
  * Where additional firewall rules attach on an existing machine. A deployment creates a
  * `MachineIngress` component under itself with this target; it never asks the machine to.
  */
-export type FirewallTarget = DigitalOceanFirewallTarget | OpenStackFirewallTarget;
+export type FirewallTarget = DigitalOceanFirewallTarget | OpenStackFirewallTarget | HostFirewallTarget;
 
 export interface DigitalOceanFirewallTarget {
   kind: 'digitalocean';
@@ -61,6 +61,18 @@ export interface OpenStackFirewallTarget {
   kind: 'openstack';
   securityGroupId: pulumi.Output<string>;
   region: string;
+}
+
+/**
+ * The machine's own nftables firewall, for providers without a cloud firewall. Rules are files under
+ * `/etc/fleet/firewall.d`, written over the deployment connection once the machine is `ready`.
+ */
+export interface HostFirewallTarget {
+  kind: 'host';
+  connection: pulumi.Output<commandTypes.input.remote.ConnectionArgs>;
+  ready: pulumi.Resource;
+  /** The machine's `installation`, so rules are written again after a reinstall. */
+  installation?: pulumi.Output<string>;
 }
 
 /** Plan-time host resources a deployment occupies on a machine. */
@@ -84,7 +96,7 @@ export interface Machine {
   readonly id: string;
   /** Human-readable place name used in directories. Defaults to `id`. */
   readonly displayName: string;
-  /** Provider name, e.g. `digitalocean` or `openstack`. */
+  /** Provider name, e.g. `digitalocean`, `openstack` or `ovh-vps`. */
   readonly provider: string;
   readonly region: string;
   /** The machine's own hostname/FQDN, set at creation. Workload hostnames are DNS aliases. */
@@ -95,8 +107,13 @@ export interface Machine {
   readonly connection: pulumi.Output<commandTypes.input.remote.ConnectionArgs>;
   /** True when the deployment user is not root, so remote scripts run through sudo. */
   readonly sudo: boolean;
-  /** Completes once cloud-init has finished. Remote work must depend on it. */
+  /** Completes once the machine profile (Docker, sshd, updates, hardening) is applied. Remote work must depend on it. */
   readonly ready: pulumi.Resource;
+  /**
+   * Changes whenever the machine's disk is reinstalled while its address stays the same, so remote work keyed on it
+   * runs again. Machines that are replaced on reinstall (and so change address) leave it unset.
+   */
+  readonly installation?: pulumi.Output<string>;
   readonly firewall: FirewallTarget;
   readonly claims: HostClaimLedger;
 }

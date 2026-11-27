@@ -12,7 +12,7 @@ import {
   DigitalOceanMachine,
   Fleet,
   renderSshConfig,
-  type MachineCloudInit
+  type MachineSetup
 } from '@moq-ha/vps-fleet';
 import { MoqRelayCluster } from '@moq-ha/vps-fleet/moq';
 import { IrohRelayCluster } from '@moq-ha/vps-fleet/iroh';
@@ -44,7 +44,7 @@ const sshKey = new digitalocean.SshKey('bootstrap-ssh-key', {
 });
 const project = digitalocean.getProjectOutput({ name: 'conservationtv' });
 // Both relays speak QUIC and ask for 8 MiB socket buffers; Ubuntu's default ceiling is 208 KiB.
-const quicHost: MachineCloudInit = {
+const quicHost: MachineSetup = {
   files: [
     {
       path: '/etc/sysctl.d/60-quic-udp-buffers.conf',
@@ -59,7 +59,7 @@ const moqMachine = new DigitalOceanMachine(`moq-${site}`, {
   hostname: moqHostname,
   sshKeys: [sshKey.id],
   project: project.id,
-  cloudInit: quicHost
+  setup: quicHost
 });
 const irohMachine = new DigitalOceanMachine(`iroh-${site}`, {
   fleet,
@@ -67,7 +67,7 @@ const irohMachine = new DigitalOceanMachine(`iroh-${site}`, {
   hostname: irohHostname,
   sshKeys: [sshKey.id],
   project: project.id,
-  cloudInit: quicHost
+  setup: quicHost
 });
 
 const acme = new AcmeAccount('acme', {

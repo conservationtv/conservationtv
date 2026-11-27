@@ -6,7 +6,7 @@ covers structure: what each layer consumes, what it creates, and what ends up on
 ```mermaid
 flowchart BT
   V["Values<br/>FirewallRule · ComposeApp · ServiceEndpoint · DnsZone · PublicTlsMaterial"]
-  M["Machines<br/>Fleet · DigitalOceanMachine · OpenStackMachine · MachineIngress"]
+  M["Machines<br/>Fleet · DigitalOceanMachine · OpenStackMachine · OvhVpsMachine · MachineIngress"]
   D["Deployment<br/>ComposeDeployment · AddressRecords"]
   W["Workload<br/>ComposeWorkload"]
   R["Relay clusters and node services<br/>MoqRelayCluster · IrohRelayCluster · NetdataAgent · CloudflareMeshConnector"]
@@ -26,16 +26,18 @@ structure is each machine's claim ledger, which can only reject a program.
 
 ## 1. Machines
 
-`Fleet` holds naming, SSH policy and the bootstrap key. A machine component creates the VPS, its base firewall (fleet
-SSH port in, everything out) and a `cloud-init-ready` command that completes once cloud-init has installed Docker and
-moved sshd to the fleet port. Its outputs form the `Machine` contract.
+`Fleet` holds naming, SSH policy and the bootstrap key. A machine component creates the VPS and its default-deny
+firewall, gets the deploy user `fleet` onto it with the fleet key and sshd on the fleet port, then applies the machine
+profile over SSH (Docker, automatic updates, kernel hardening, `setup`). `ready` is that profile. Its outputs form the
+`Machine` contract.
 
 ```
-DigitalOceanMachine <id>                OpenStackMachine <id>
-├─ cloudinit.Config   <id>-cloud-init   ├─ cloudinit.Config        <id>-cloud-init
-├─ Droplet            <id>              ├─ Keypair, SecGroup, SecGroupRules
-├─ Firewall           <id>-firewall     ├─ Instance                <id>
-└─ remote.Command     <id>-cloud-init-ready  └─ remote.Command     <id>-cloud-init-ready
+DigitalOceanMachine <id>                 OpenStackMachine <id>                OvhVpsMachine <id>
+├─ Droplet         <id>  (user data:     ├─ SecGroup, SecGroupRules           ├─ local.Command  <id>-install   OVH API reinstall
+│                   deploy user, sshd)   ├─ Instance       <id> (user data)   ├─ remote.Command <id>-handover  ubuntu@22, once
+├─ Firewall        <id>-firewall         ├─ remote.Command <id>-cloud-init-ready  └─ remote.Command <id>-profile   + host firewall
+├─ remote.Command  <id>-cloud-init-ready └─ remote.Command <id>-profile
+└─ remote.Command  <id>-profile
 ```
 
 `MachineIngress` adds inbound rules to an existing machine's `FirewallTarget`. It belongs to whoever creates it, so

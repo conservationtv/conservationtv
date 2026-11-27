@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import * as pulumi from '@pulumi/pulumi';
 import type { ComposeApp, PublicTlsMaterial } from '../core/contracts';
 import { readHttpsUrl } from '../core/validate';
+import { RELAY_CONTAINER_HARDENING } from '../relay/hardening';
 
 export const MOQ_RELAY_IMAGE = 'moqdev/moq-relay:0.17.18';
 export const MOQ_HTTPS_ENDPOINT = 'moq.https';
@@ -78,6 +79,7 @@ export function moqRelayApp(args: MoqRelayAppArgs): ComposeApp {
         restart: 'unless-stopped',
         network_mode: 'host',
         pull_policy: 'always',
+        ...RELAY_CONTAINER_HARDENING,
         ulimits: { nofile: { soft: 65536, hard: 65536 } },
         environment: { MOQ_AUTH_URL: authUrl },
         volumes: [

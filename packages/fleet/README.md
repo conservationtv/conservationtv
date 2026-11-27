@@ -16,7 +16,8 @@ credentials through `opts.provider(s)`. Components never call methods on each ot
 `Machine`, a `PublicTlsMaterial`, a `ComposeApp`).
 
 ```
-Fleet ──▶ DigitalOceanMachine / OpenStackMachine      one VPS, base firewall, cloud-init done
+Fleet ──▶ DigitalOceanMachine / OpenStackMachine /   one VPS, default-deny firewall, machine profile applied
+          OvhVpsMachine
              │ (Machine)
              ▼
           ComposeDeployment                            one Compose app on one machine: files, systemd unit,
@@ -49,7 +50,7 @@ const fleet = new Fleet('fleet', {
   environment: pulumi.getStack(),
   ssh: { port: 2222, allowedCidrs: [config.require('sshCidr')] }
 });
-// Without a registered key DigitalOcean emails a root password; access itself uses the key cloud-init installs.
+// Without a registered key DigitalOcean emails a root password; access itself is the deploy user's, with the fleet key.
 const sshKey = new digitalocean.SshKey('bootstrap', { name: 'relays-bootstrap', publicKey: fleet.publicKeyOpenSsh });
 const london = new DigitalOceanMachine('london', { fleet, region: 'lon1', sshKeys: [sshKey.id] });
 const newYork = new DigitalOceanMachine('new-york', { fleet, region: 'nyc3', sshKeys: [sshKey.id] });
@@ -99,8 +100,13 @@ export const sshPrivateKey = fleet.privateKeyPem;
 
 ## Operational notes
 
-- Machines run Ubuntu 24.04 with Docker, and sshd on the fleet port with key-only auth. Remote work waits for
-  cloud-init.
+- Machines run Ubuntu 24.04 with Docker. Deployments connect as `fleet`, key-only, on the fleet SSH port, and run as
+  root through sudo; root logins are refused. Remote work waits for the machine profile, which also turns on automatic
+  security updates (with a reboot at `automaticReboot` when one needs it) and hardens kernel settings.
+- Every machine's firewall denies by default in both directions: a cloud firewall on DigitalOcean and OpenStack, an
+  nftables one on the machine for OVH VPS. Outbound defaults to DNS, NTP, HTTP, HTTPS, QUIC and ICMP.
+- Relay containers run with a read-only root filesystem, every capability dropped but binding low ports, and
+  `no-new-privileges`.
 - Each app lives in `/opt/<name>` with a `docker-compose.yml` and a `<name>.service` systemd unit. All files are
   written by one script before any redeploy, so a deploy never sees a half-written app.
 - A file's `onChange` decides its rollout: `redeploy` (pull and recreate), `restart` (restart in place, used for

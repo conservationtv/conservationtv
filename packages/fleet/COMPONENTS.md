@@ -19,35 +19,68 @@ Naming, SSH policy and the bootstrap SSH key (RSA 4096) shared by a set of machi
 
 Outputs: `publicKeyOpenSsh`, `privateKeyPem` (secret). Machines take the fleet as `fleet`; nothing else does.
 
-### `DigitalOceanMachine`, `OpenStackMachine`
+### `DigitalOceanMachine`, `OpenStackMachine`, `OvhVpsMachine`
 
-A VPS with its base firewall (fleet SSH ingress, all egress), booted with the fleet cloud-init profile. Both implement
+A VPS behind a default-deny firewall in both directions, reachable only as the deploy user `fleet` (key-only, on the
+fleet's SSH port; root logins are refused), and ready once the machine profile is applied. All three implement
 `Machine`, the data every deployment consumes: `id`, `displayName`, `provider`, `region`, `hostname`, `address`,
-`addressV6?`, `connection`, `sudo`, `ready` (cloud-init finished), `firewall` and `claims`.
+`addressV6?`, `connection`, `sudo`, `ready` (profile applied), `installation?`, `firewall` and `claims`.
+
+The profile is one idempotent script run over SSH, and again whenever it changes, without replacing the machine:
+Docker, automatic security updates (rebooting at `automaticReboot` when one needs it), kernel hardening (pointer and
+dmesg restrictions, no unprivileged BPF, no redirects or source routing), sshd re-asserted, root's password locked, the
+hostname kept across reboots, then `setup`. User data, where the provider takes it, only creates the deploy user and
+moves sshd, so it rarely changes.
 
 Common args:
 
-| Arg           | Meaning                                                                                                                      |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `fleet`       | The `Fleet`.                                                                                                                 |
-| `region`      | Provider region.                                                                                                             |
-| `id`          | Lowercase DNS label, unique in the fleet. Defaults to the component name. Cloud names are `<namePrefix>-<environment>-<id>`. |
-| `displayName` | Shown in relay directories. Defaults to `id`.                                                                                |
-| `hostname`    | The machine's own FQDN. Defaults to `id`. Workload hostnames are DNS aliases and never change it.                            |
-| `enableIpv6`  | Exposes `addressV6` and adds AAAA records.                                                                                   |
-| `cloudInit`   | Extra `packages`, `files` and `commands`, run after Docker and sshd are set up.                                              |
+| Arg               | Meaning                                                                                                                      |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `fleet`           | The `Fleet`.                                                                                                                 |
+| `region`          | Provider region.                                                                                                             |
+| `id`              | Lowercase DNS label, unique in the fleet. Defaults to the component name. Cloud names are `<namePrefix>-<environment>-<id>`. |
+| `displayName`     | Shown in relay directories. Defaults to `id`.                                                                                |
+| `hostname`        | The machine's own FQDN. Defaults to `id`. Workload hostnames are DNS aliases and never change it.                            |
+| `enableIpv6`      | Exposes `addressV6` and adds AAAA records.                                                                                   |
+| `egress`          | What the machine may send. Defaults to `DEFAULT_EGRESS`; `ALLOW_ALL_EGRESS` lifts the restriction.                           |
+| `automaticReboot` | `HH:MM` (UTC) for reboots security updates need, or `false`. Defaults to `04:00`; stagger machines serving the same clients. |
+| `setup`           | Extra `packages`, `files` and `commands`, applied last in the profile.                                                       |
+
+`DEFAULT_EGRESS` allows DNS (TCP and UDP 53), NTP (UDP 123), HTTP (TCP 80, for Ubuntu's mirrors and metadata), HTTPS
+and QUIC (TCP and UDP 443) and ICMP, to anywhere. A node service that dials anything else needs it added, e.g. a
+WireGuard-based mesh's UDP port.
 
 DigitalOcean adds `size` (`s-1vcpu-2gb`), `image` (`ubuntu-24-04-x64`) and `sshKeys`. Create one `digitalocean.SshKey`
 from `fleet.publicKeyOpenSsh` and pass its id to every machine: DigitalOcean rejects duplicate keys per account and
 emails a root password to droplets created without one. `project` assigns the droplet to a DigitalOcean project, e.g.
-`digitalocean.getProjectOutput({ name }).id`; otherwise it lands in the account's default project. OpenStack adds `flavor` (`d2-4`), `imageName`
-(`Ubuntu 24.04`) and `networkName` (`Ext-Net`), owns a per-machine keypair and security group, and deploys as `ubuntu`
-through sudo.
+`digitalocean.getProjectOutput({ name }).id`; otherwise it lands in the account's default project. Its firewall is a
+DigitalOcean firewall. OpenStack adds `flavor` (`d2-4`), `imageName` (`Ubuntu 24.04`) and `networkName` (`Ext-Net`)
+and owns a security group as its firewall.
+
+`OvhVpsMachine` takes over a VPS you have ordered, by `serviceName` (e.g. `vps-1a2b3c4d.vps.ovh.net`), with `region`
+set to its datacentre (`UK`, `GRA`, …) and `image` (`Ubuntu 24.04`). It does not order: OVH's orders are paid, often
+out of stock, and slower to deliver than the OVH Pulumi provider waits for, which leaves a paid VPS outside the state.
+OVH VPS has neither user data nor a cloud firewall, so:
+
+1. `<id>-install`, a local command calling the OVH API, reinstalls the VPS with the fleet key, **erasing it**. It runs
+   again (and erases it again) when `serviceName`, `image` or the fleet key changes; the address stays, so
+   `installation` changes and every remote command on the machine runs again.
+2. `<id>-handover` connects once as the image's `ubuntu` user on port 22 and creates the deploy user and sshd on the
+   fleet port. Port 22 is closed from then on.
+3. The profile installs a host firewall: nftables table `inet fleet`, default-deny in and out, carrying the fleet's SSH
+   rule and the machine's egress; deployments add their rules as drop-ins.
+
+The OVH API credentials come from where Pulumi runs: `OVH_ENDPOINT` with `OVH_APPLICATION_KEY`,
+`OVH_APPLICATION_SECRET` and `OVH_CONSUMER_KEY`, or `OVH_CLIENT_ID` and `OVH_CLIENT_SECRET`, or `OVH_ACCESS_TOKEN`, or
+an `ovh.conf` (as `ovhcloud login` writes). Removing the machine leaves the VPS and its subscription; end it with
+`ovhcloud vps terminate`. Leave OVH's Edge Network Firewall off for the VPS: enabled, it drops UDP 443 even where a
+rule allows it, which breaks QUIC.
 
 ### `MachineIngress`
 
 `{ firewall: FirewallTarget; rules: FirewallRule[] }`. Extra inbound rules on an existing machine, owned by whoever
-creates it. `ComposeDeployment` creates one for its public endpoints; create your own for anything else. Build rules
+creates it: a DigitalOcean firewall, OpenStack security group rules, or a host firewall drop-in in
+`/etc/fleet/firewall.d` (which also admits Docker-published ports, matched on the port before DNAT). `ComposeDeployment` creates one for its public endpoints; create your own for anything else. Build rules
 with `tcp(port, cidrs?)`, `udp(port, cidrs?)` and `icmp(cidrs?)`; sources default to `ANYWHERE`.
 
 ### `renderSshConfig(machines, { aliasPrefix?, identityFile? })`
@@ -124,7 +157,7 @@ characters; one leading `*.` label is allowed) via DNS-01, renewed by `pulumi up
 | `tls`     | Must cover every relay hostname.                                                                |
 | `auth`    | `{ origin, token, clusterToken }`, see below.                                                   |
 | `dns`     | Optional `DnsZone` for relay hostnames.                                                         |
-| `image`   | Defaults to `MOQ_RELAY_IMAGE` (`moqdev/moq-relay:0.17.18`).                                      |
+| `image`   | Defaults to `MOQ_RELAY_IMAGE` (`moqdev/moq-relay:0.17.18`).                                     |
 | `rollout` | `parallel` (default) or `serial`.                                                               |
 
 Each relay serves HTTPS on TCP 443 (`moq.https`), WebTransport on UDP 443 (`moq.webtransport`) and Prometheus on private
@@ -198,6 +231,7 @@ Runs the official `cloudflare/mesh` container (`/opt/cloudflare-mesh`) with pers
 ## Extending
 
 Implement `Machine` to add a provider: expose a `connection`, a `ready` resource and a `MachineClaimLedger` as
-`claims`. `FirewallTarget` is a closed union (DigitalOcean or OpenStack), so a provider with a new firewall model also
-needs a `MachineIngress` case. Build new node services or protocol clusters as
+`claims`. A provider without a cloud firewall uses the `host` firewall target, as `OvhVpsMachine` does; one with a new
+cloud firewall model adds a `FirewallTarget` kind and a `MachineIngress` case. A provider that reinstalls in place sets
+`installation`. Build new node services or protocol clusters as
 components that create a `ComposeWorkload` with `{ parent: this, dependsOn: opts?.dependsOn }`.
