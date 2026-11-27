@@ -47,7 +47,7 @@ export class ComposeDeployment extends pulumi.ComponentResource {
     deployComposePlan(
       name,
       plan,
-      { connection: machine.connection, sudo: machine.sudo },
+      { connection: machine.connection, sudo: machine.sudo, installation: machine.installation },
       pulumi.mergeOptions(childOpts, { dependsOn: [machine.ready, ...ingress] })
     );
     if (args.dns) {

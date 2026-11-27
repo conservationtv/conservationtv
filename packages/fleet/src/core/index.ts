@@ -1,8 +1,10 @@
 export { Fleet, type FleetArgs } from './fleet';
 export { DigitalOceanMachine, type DigitalOceanMachineArgs } from './machines/digitalocean';
 export { OpenStackMachine, type OpenStackMachineArgs } from './machines/openstack';
+export { OvhVpsMachine, type OvhVpsMachineArgs } from './machines/ovh';
 export type { MachineArgsBase } from './machines/shared';
-export type { CloudInitFile, MachineCloudInit } from './machines/cloudInit';
+export { DEPLOY_USER } from './machines/cloudInit';
+export type { MachineSetup, MachineSetupFile } from './machines/profile';
 export { MachineClaimLedger } from './machines/claims';
 export { MachineIngress, type MachineIngressArgs } from './machines/ingress';
 export { renderSshConfig, type SshConfigOptions } from './machines/sshConfig';
@@ -26,7 +28,7 @@ export {
   type CloudflareMeshNode
 } from './services/cloudflareMesh';
 
-export { icmp, tcp, udp } from './firewall';
+export { ALLOW_ALL_EGRESS, DEFAULT_EGRESS, icmp, tcp, udp } from './firewall';
 export { ANYWHERE, readCidrs, readHostname, readHttpsUrl } from './validate';
 
 export type {
@@ -48,6 +50,7 @@ export type {
   FirewallTarget,
   FleetContext,
   HealthCheck,
+  HostFirewallTarget,
   HostClaimLedger,
   HostClaims,
   Machine,

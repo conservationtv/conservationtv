@@ -5,7 +5,7 @@ import * as pulumi from '@pulumi/pulumi';
 import * as yaml from 'yaml';
 import type { ComposeApp, ComposeMapping, ComposeValue, FileChangePolicy, HealthCheck, RemoteFile } from '../contracts';
 import { sanitizeName } from '../naming';
-import { shellQuote } from '../shell';
+import { asRemoteScript, shellQuote, writeFileLines } from '../shell';
 import { mutableImageWarning } from '../validate';
 
 const COMPOSE_NAME = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
@@ -35,6 +35,8 @@ interface ComposePlan {
 interface RemoteTarget {
   connection: pulumi.Input<commandTypes.input.remote.ConnectionArgs>;
   sudo: boolean;
+  /** The machine's `installation`: every command runs again when it changes. */
+  installation?: pulumi.Input<string>;
 }
 
 /** Validates `app` and decides, at plan time, every file, claim and check the lifecycle will use. */
@@ -139,7 +141,12 @@ export function deployComposePlan(
     const remoteScript = pulumi.output(script).apply(body => asRemoteScript(body, target.sudo));
     return new remote.Command(
       `${name}-${suffix}`,
-      { connection: target.connection, create: remoteScript, update: remoteScript, triggers: digest(triggers) },
+      {
+        connection: target.connection,
+        create: remoteScript,
+        update: remoteScript,
+        triggers: digest(target.installation === undefined ? triggers : [...triggers, target.installation])
+      },
       after(...deps)
     );
   };
@@ -219,10 +226,7 @@ function fileManifest(files: readonly ManagedFile[]): pulumi.Output<string> {
         ...files.map((file, index) =>
           [
             `install -m 0755 -d ${shellQuote(posix.dirname(file.path))}`,
-            `base64 -d > ${shellQuote(file.path)} <<'__FLEET_FILE__'`,
-            Buffer.from(contents[index], 'utf8').toString('base64'),
-            '__FLEET_FILE__',
-            `chmod ${file.mode} ${shellQuote(file.path)}`
+            ...writeFileLines(file.path, contents[index], file.mode)
           ].join('\n')
         )
       ].join('\n')
@@ -250,10 +254,6 @@ done`;
 
 function inDir(dir: string, script: string): string {
   return `set -eu\ncd ${shellQuote(dir)}\n${script}`;
-}
-
-function asRemoteScript(script: string, sudo: boolean): string {
-  return sudo ? `sudo /bin/sh -s <<'__FLEET_SUDO__'\n${script.trim()}\n__FLEET_SUDO__\n` : script;
 }
 
 /** Service and volume names must be compose keys and their definitions mappings. */

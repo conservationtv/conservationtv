@@ -2,11 +2,19 @@ import type { types as commandTypes } from '@pulumi/command';
 import * as openstack from '@pulumi/openstack';
 import * as pulumi from '@pulumi/pulumi';
 import type { FirewallTarget, HostClaimLedger, Machine } from '../contracts';
-import { ALLOW_ALL_EGRESS, tcp } from '../firewall';
+import { tcp } from '../firewall';
 import { resourceName } from '../naming';
 import { MachineClaimLedger } from './claims';
 import { createOpenStackRules } from './rules';
-import { machineUserData, readMachineIdentity, sshConnection, waitForCloudInit, type MachineArgsBase } from './shared';
+import {
+  applyProfile,
+  machineEgress,
+  machineUserData,
+  readMachineIdentity,
+  sshConnection,
+  waitForCloudInit,
+  type MachineArgsBase
+} from './shared';
 
 export interface OpenStackMachineArgs extends MachineArgsBase {
   /** Defaults to `d2-4`. */
@@ -17,10 +25,7 @@ export interface OpenStackMachineArgs extends MachineArgsBase {
   networkName?: string;
 }
 
-// The Ubuntu image's default user; cloud-init installs the fleet key for root, the keypair for this user.
-const USER = 'ubuntu';
-
-/** An instance in its own security group (fleet SSH ingress, all egress), waiting for cloud-init. */
+/** An instance in its own security group (fleet SSH in, the machine's egress out), ready once the machine profile is applied. */
 export class OpenStackMachine extends pulumi.ComponentResource implements Machine {
   public readonly id: string;
   public readonly displayName: string;
@@ -46,14 +51,6 @@ export class OpenStackMachine extends pulumi.ComponentResource implements Machin
     this.claims = new MachineClaimLedger(this.id);
     const tags = [fleet.namePrefix, resourceName(fleet.namePrefix, fleet.environment), identity.cloudName];
 
-    // Keypairs are per region and Nova accepts the same public key under several names, so each
-    // machine owns one rather than sharing a region-wide keypair that some machine would have to create.
-    const keyPair = new openstack.compute.Keypair(
-      `${name}-keypair`,
-      { name: identity.cloudName, publicKey: fleet.publicKeyOpenSsh, region },
-      { parent: this, deleteBeforeReplace: true }
-    );
-
     const securityGroup = new openstack.networking.SecGroup(
       `${name}-security-group`,
       {
@@ -68,7 +65,7 @@ export class OpenStackMachine extends pulumi.ComponentResource implements Machin
     const target = { securityGroupId: securityGroup.id, region };
     const rules = [
       ...createOpenStackRules(name, target, 'ingress', [tcp(fleet.ssh.port, fleet.ssh.allowedCidrs)], this),
-      ...createOpenStackRules(name, target, 'egress', ALLOW_ALL_EGRESS, this)
+      ...createOpenStackRules(name, target, 'egress', machineEgress(args), this)
     ];
 
     const instance = new openstack.compute.Instance(
@@ -78,7 +75,6 @@ export class OpenStackMachine extends pulumi.ComponentResource implements Machin
         region,
         imageName: args.imageName ?? 'Ubuntu 24.04',
         flavorName: args.flavor ?? 'd2-4',
-        keyPair: keyPair.name,
         networks: [{ name: args.networkName ?? 'Ext-Net' }],
         securityGroups: [securityGroup.name],
         userData: machineUserData(identity, args),
@@ -90,8 +86,13 @@ export class OpenStackMachine extends pulumi.ComponentResource implements Machin
 
     this.address = instance.accessIpV4;
     this.addressV6 = args.enableIpv6 ? instance.accessIpV6 : undefined;
-    this.connection = sshConnection(fleet, this.address, USER);
-    this.ready = waitForCloudInit(name, fleet, this.address, USER, this);
+    this.connection = sshConnection(fleet, this.address);
+    const cloudInit = waitForCloudInit(name, fleet, this.address, this);
+    this.ready = applyProfile(
+      name,
+      { identity, machine: args, connection: this.connection },
+      { parent: this, dependsOn: [cloudInit] }
+    );
     this.firewall = { kind: 'openstack', securityGroupId: securityGroup.id, region };
 
     this.registerOutputs({ address: this.address, addressV6: this.addressV6, hostname: this.hostname });

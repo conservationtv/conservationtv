@@ -2,6 +2,7 @@ import * as digitalocean from '@pulumi/digitalocean';
 import * as pulumi from '@pulumi/pulumi';
 import type { FirewallRule, FirewallTarget } from '../contracts';
 import { resourceName, truncateWithHash } from '../naming';
+import { createHostRules } from './hostFirewall';
 import { createOpenStackRules, toDigitalOceanInbound } from './rules';
 
 export interface MachineIngressArgs {
@@ -14,6 +15,8 @@ export class MachineIngress extends pulumi.ComponentResource {
   public constructor(name: string, args: MachineIngressArgs, opts?: pulumi.ComponentResourceOptions) {
     super('fleet:core:MachineIngress', name, {}, opts);
     const { firewall, rules } = args;
+    // Each firewall model takes rules its own way: a DigitalOcean firewall attached to the droplet, OpenStack rules in
+    // the machine's security group, or a drop-in file in the machine's own nftables firewall.
     if (rules.length) {
       switch (firewall.kind) {
         case 'digitalocean':
@@ -30,6 +33,9 @@ export class MachineIngress extends pulumi.ComponentResource {
           break;
         case 'openstack':
           createOpenStackRules(name, firewall, 'ingress', rules, this);
+          break;
+        case 'host':
+          createHostRules(name, { firewall, rules }, this);
           break;
       }
     }

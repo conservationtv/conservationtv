@@ -13,6 +13,21 @@ export function icmp(sourceCidrs: readonly string[] = ANYWHERE): FirewallRule {
   return { protocol: 'icmp', sourceCidrs: readCidrs(sourceCidrs, 'icmp sourceCidrs') };
 }
 
+/**
+ * What a machine may send by default: DNS, NTP, HTTP (Ubuntu's package mirrors and metadata services), HTTPS and QUIC
+ * (registries, admission callbacks, relay peers) and ICMP. Anything else (SMTP, odd ports for shells or miners) is
+ * refused. The destinations are hostnames whose addresses change, so the rules are by port, to anywhere.
+ */
+export const DEFAULT_EGRESS: readonly FirewallRule[] = [
+  { protocol: 'udp', port: 53, sourceCidrs: [...ANYWHERE] },
+  { protocol: 'tcp', port: 53, sourceCidrs: [...ANYWHERE] },
+  { protocol: 'udp', port: 123, sourceCidrs: [...ANYWHERE] },
+  { protocol: 'tcp', port: 80, sourceCidrs: [...ANYWHERE] },
+  { protocol: 'tcp', port: 443, sourceCidrs: [...ANYWHERE] },
+  { protocol: 'udp', port: 443, sourceCidrs: [...ANYWHERE] },
+  { protocol: 'icmp', sourceCidrs: [...ANYWHERE] }
+];
+
 /** Unrestricted outbound TCP, UDP and ICMP. */
 export const ALLOW_ALL_EGRESS: readonly FirewallRule[] = [
   { protocol: 'tcp', port: { from: 1, to: 65535 }, sourceCidrs: [...ANYWHERE] },

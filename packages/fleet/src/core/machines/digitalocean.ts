@@ -2,11 +2,19 @@ import type { types as commandTypes } from '@pulumi/command';
 import * as digitalocean from '@pulumi/digitalocean';
 import * as pulumi from '@pulumi/pulumi';
 import type { FirewallTarget, HostClaimLedger, Machine } from '../contracts';
-import { ALLOW_ALL_EGRESS, tcp } from '../firewall';
+import { tcp } from '../firewall';
 import { resourceName } from '../naming';
 import { MachineClaimLedger } from './claims';
 import { toDigitalOceanInbound, toDigitalOceanOutbound } from './rules';
-import { machineUserData, readMachineIdentity, sshConnection, waitForCloudInit, type MachineArgsBase } from './shared';
+import {
+  applyProfile,
+  machineEgress,
+  machineUserData,
+  readMachineIdentity,
+  sshConnection,
+  waitForCloudInit,
+  type MachineArgsBase
+} from './shared';
 
 export interface DigitalOceanMachineArgs extends MachineArgsBase {
   /** Droplet size slug. Defaults to `s-1vcpu-2gb`. */
@@ -15,7 +23,8 @@ export interface DigitalOceanMachineArgs extends MachineArgsBase {
   image?: string;
   /**
    * DigitalOcean SSH key IDs or fingerprints to register on the droplet. Access never depends on
-   * them (cloud-init installs the fleet key), but without one DigitalOcean emails a root password.
+   * them (root logins are refused; the deploy user has the fleet key), but without one DigitalOcean emails a root
+   * password.
    * DigitalOcean rejects duplicate public keys per account, so create one `digitalocean.SshKey`
    * for the fleet key and pass its id to every machine.
    */
@@ -24,9 +33,7 @@ export interface DigitalOceanMachineArgs extends MachineArgsBase {
   project?: pulumi.Input<string>;
 }
 
-const USER = 'root';
-
-/** A droplet with its base firewall (fleet SSH ingress, all egress), waiting for cloud-init. */
+/** A droplet behind its base firewall (fleet SSH in, the machine's egress out), ready once the machine profile is applied. */
 export class DigitalOceanMachine extends pulumi.ComponentResource implements Machine {
   public readonly id: string;
   public readonly displayName: string;
@@ -36,7 +43,7 @@ export class DigitalOceanMachine extends pulumi.ComponentResource implements Mac
   public readonly address: pulumi.Output<string>;
   public readonly addressV6?: pulumi.Output<string>;
   public readonly connection: pulumi.Output<commandTypes.input.remote.ConnectionArgs>;
-  public readonly sudo = false;
+  public readonly sudo = true;
   public readonly ready: pulumi.Resource;
   public readonly firewall: FirewallTarget;
   public readonly claims: HostClaimLedger;
@@ -75,7 +82,7 @@ export class DigitalOceanMachine extends pulumi.ComponentResource implements Mac
         name: identity.cloudName,
         dropletIds: [dropletId],
         inboundRules: [toDigitalOceanInbound(tcp(fleet.ssh.port, fleet.ssh.allowedCidrs))],
-        outboundRules: ALLOW_ALL_EGRESS.map(toDigitalOceanOutbound)
+        outboundRules: machineEgress(args).map(toDigitalOceanOutbound)
       },
       { parent: this }
     );
@@ -90,8 +97,13 @@ export class DigitalOceanMachine extends pulumi.ComponentResource implements Mac
 
     this.address = droplet.ipv4Address;
     this.addressV6 = args.enableIpv6 ? droplet.ipv6Address : undefined;
-    this.connection = sshConnection(fleet, this.address, USER);
-    this.ready = waitForCloudInit(name, fleet, this.address, USER, this);
+    this.connection = sshConnection(fleet, this.address);
+    const cloudInit = waitForCloudInit(name, fleet, this.address, this);
+    this.ready = applyProfile(
+      name,
+      { identity, machine: args, connection: this.connection },
+      { parent: this, dependsOn: [cloudInit] }
+    );
     this.firewall = { kind: 'digitalocean', dropletId, cloudName: identity.cloudName };
 
     this.registerOutputs({ address: this.address, addressV6: this.addressV6, hostname: this.hostname });

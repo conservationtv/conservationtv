@@ -4,7 +4,7 @@ import { parse } from 'smol-toml';
 import * as yaml from 'yaml';
 import type { ComposeApp } from '../src/core/contracts';
 import { planComposeApp } from '../src/core/compose/lifecycle';
-import { renderCloudInitYaml } from '../src/core/machines/cloudInit';
+import { renderAccessYaml } from '../src/core/machines/cloudInit';
 import { normalizeHostnameRoute } from '../src/core/services/cloudflareMesh';
 import { moqRelayApp, renderMoqRelayToml, stableClusterId, type MoqRelayAppArgs } from '../src/moq/relayApp';
 import { IROH_RELAY_IMAGE, irohRelayApp, renderIrohRelayToml, type IrohRelayAppArgs } from '../src/iroh/relayApp';
@@ -174,22 +174,23 @@ describe('host renderers', () => {
     expect(plan.warnings).toEqual([expect.stringContaining('mutable image reference (example/app)')]);
   });
 
-  it('renders the Ubuntu/Docker cloud-init profile', () => {
-    const rendered = renderCloudInitYaml({
+  it('renders user data that only grants the deploy user access on the fleet port', () => {
+    const rendered = renderAccessYaml({
       hostname: 'na-east',
       fqdn: 'na-east.nodes.example.test',
       ssh: { port: 2222, allowedCidrs: ['192.0.2.0/24'] },
-      sshAuthorizedKeys: ['ssh-rsa AAAA test'],
-      extraPackages: ['jq']
+      authorizedKey: 'ssh-rsa AAAA test\n'
     });
-    const document = yaml.parseDocument(rendered);
-    expect(document.get('hostname')).toBe('na-east');
-    expect(document.get('fqdn')).toBe('na-east.nodes.example.test');
-    expect(document.toJS().packages).toEqual(['jq']);
+    const document = yaml.parse(rendered);
+    expect(document.hostname).toBe('na-east');
+    expect(document.fqdn).toBe('na-east.nodes.example.test');
+    expect(document.users).toEqual([
+      expect.objectContaining({ name: 'fleet', lock_passwd: true, ssh_authorized_keys: ['ssh-rsa AAAA test'] })
+    ]);
     expect(rendered).toContain('Port 2222');
-    expect(rendered).toContain('PasswordAuthentication no');
-    expect(rendered).toContain('docker-compose-plugin');
-    expect(rendered).toContain('ssh-rsa AAAA test');
+    expect(rendered).toContain('PermitRootLogin no');
+    expect(rendered).toContain('AllowUsers fleet');
+    expect(rendered).not.toContain('docker');
   });
 
   it('normalizes valid Mesh hostname routes and rejects unsupported wildcards', () => {

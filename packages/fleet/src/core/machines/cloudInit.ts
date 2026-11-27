@@ -3,133 +3,90 @@ import dedent from 'dedent';
 import * as yaml from 'yaml';
 import type { SshAccess } from '../contracts';
 
+/** The user every deployment connects as. Root logins are refused; it runs remote scripts through sudo. */
+export const DEPLOY_USER = 'fleet';
+
 // sshd keeps the first value it reads for each keyword and reads drop-ins in lexical order, so this must sort
 // before the image's own drop-ins (e.g. 50-cloud-init.conf) for key-only auth to take effect.
-const SSHD_CONFIG_PATH = '/etc/ssh/sshd_config.d/10-fleet.conf';
+export const SSHD_CONFIG_PATH = '/etc/ssh/sshd_config.d/10-fleet.conf';
 
-export interface CloudInitFile {
-  path: string;
-  content: pulumi.Input<string>;
-  /** Defaults to `root:root`. */
-  owner?: string;
-  /** Defaults to `0644`. */
-  permissions?: string;
+/** Key-only SSH for the deploy user alone, on the fleet's port. Local forwarding stays on for private endpoints. */
+export function sshdConfig(port: number): string {
+  return (
+    dedent`
+    Port ${port}
+    PermitRootLogin no
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    AuthenticationMethods publickey
+    AllowUsers ${DEPLOY_USER}
+    MaxAuthTries 3
+    LoginGraceTime 20
+    X11Forwarding no
+    AllowAgentForwarding no
+  ` + '\n'
+  );
 }
 
-interface RenderedCloudInitFile extends Omit<CloudInitFile, 'content'> {
-  content: string;
-}
+/**
+ * Applies a changed sshd port. Ubuntu 24.04 starts sshd from `ssh.socket`, whose port comes from sshd_config through a
+ * generator, so the socket needs a daemon-reload and restart; images without socket activation just restart sshd.
+ * Open sessions survive both. `sshd -t` needs the privilege separation directory, which a socket-activated sshd only
+ * creates once it first runs.
+ */
+export const RESTART_SSH = dedent`
+  install -d -m 0755 /run/sshd
+  sshd -t
+  systemctl daemon-reload
+  if systemctl is-enabled --quiet ssh.socket 2>/dev/null; then systemctl restart ssh.socket; fi
+  systemctl restart ssh || systemctl restart sshd
+`;
 
-/** Additions to the base profile (Docker, sshd on the fleet port with key-only auth, root's authorized_keys). */
-export interface MachineCloudInit {
-  packages?: string[];
-  files?: CloudInitFile[];
-  /** Run after Docker is installed and sshd is restarted. */
-  commands?: pulumi.Input<string>[];
-}
-
-interface CloudInitProfile {
+export interface AccessUserDataArgs {
   hostname: string;
   fqdn: string;
   ssh: SshAccess;
-  sshAuthorizedKeys: string[];
-  extraPackages?: string[];
-  extraWriteFiles?: RenderedCloudInitFile[];
-  extraRunCmds?: string[];
+  authorizedKey: pulumi.Input<string>;
 }
 
-interface CloudInitArgs extends MachineCloudInit {
-  hostname: string;
-  fqdn: string;
-  ssh: SshAccess;
-  sshAuthorizedKeys: pulumi.Input<string>[];
-}
-
-/** The machine's `#cloud-config` user data. */
-export function renderCloudInit(args: CloudInitArgs): pulumi.Output<string> {
-  const files = args.files ?? [];
-  for (const file of files) {
-    if (!file.path.startsWith('/')) throw new Error(`Cloud-init file path "${file.path}" must be absolute.`);
-  }
+/**
+ * The machine's `#cloud-config`: only what reaching it needs. The deploy user with the fleet key, sshd on the fleet port,
+ * and the hostname. Everything else is the machine profile, applied over SSH, so changing it never replaces a machine.
+ */
+export function renderAccessUserData(args: AccessUserDataArgs): pulumi.Output<string> {
   return pulumi
-    .all({
-      keys: pulumi.all(args.sshAuthorizedKeys),
-      fileContents: pulumi.all(files.map(file => file.content)),
-      commands: pulumi.all(args.commands ?? [])
-    })
-    .apply(
-      ({ keys, fileContents, commands }) =>
-        `#cloud-config\n${renderCloudInitYaml({
-          hostname: args.hostname,
-          fqdn: args.fqdn,
-          ssh: args.ssh,
-          sshAuthorizedKeys: keys,
-          extraPackages: args.packages,
-          extraWriteFiles: files.map((file, index) => ({ ...file, content: fileContents[index] })),
-          extraRunCmds: commands
-        })}`
-    );
+    .output(args.authorizedKey)
+    .apply(key => `#cloud-config\n${renderAccessYaml({ ...args, authorizedKey: key })}`);
 }
 
-export function renderCloudInitYaml(profile: CloudInitProfile): string {
-  const dockerScript = dedent`
-    set -eu
-    apt-get update
-    apt-get install -y ca-certificates curl gnupg
-    install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-    chmod a+r /etc/apt/keyrings/docker.asc
-    ARCH="$(dpkg --print-architecture)"
-    CODENAME="$(. /etc/os-release && echo "$VERSION_CODENAME")"
-    echo "deb [arch=$ARCH signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $CODENAME stable" > /etc/apt/sources.list.d/docker.list
-    apt-get update
-    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-    systemctl enable --now docker
-  `;
+/** `AccessUserDataArgs` with the key resolved. */
+export interface AccessYamlArgs extends Omit<AccessUserDataArgs, 'authorizedKey'> {
+  authorizedKey: string;
+}
 
+export function renderAccessYaml(args: AccessYamlArgs): string {
   return yaml.stringify({
-    package_update: true,
-    // cloud-init's schema rejects an empty `packages` list, so omit the key when there is nothing to install.
-    ...(profile.extraPackages?.length && { packages: profile.extraPackages }),
-    hostname: profile.hostname,
+    hostname: args.hostname,
     preserve_hostname: false,
-    fqdn: profile.fqdn,
+    fqdn: args.fqdn,
     prefer_fqdn_over_hostname: true,
     manage_etc_hosts: true,
-    bootcmd: ['mkdir -p /root/.ssh /etc/ssh/sshd_config.d'],
-    write_files: [
+    disable_root: true,
+    ssh_pwauth: false,
+    users: [
       {
-        path: SSHD_CONFIG_PATH,
-        owner: 'root:root',
-        permissions: '0644',
-        content: dedent`
-          Port ${profile.ssh.port}
-          PermitRootLogin prohibit-password
-          PasswordAuthentication no
-          KbdInteractiveAuthentication no
-        `
-      },
-      {
-        path: '/root/.ssh/authorized_keys',
-        owner: 'root:root',
-        permissions: '0600',
-        content: `${profile.sshAuthorizedKeys.join('\n').trim()}\n`
-      },
-      ...(profile.extraWriteFiles ?? []).map(file => ({
-        path: file.path,
-        owner: file.owner ?? 'root:root',
-        permissions: file.permissions ?? '0644',
-        content: file.content
-      }))
+        name: DEPLOY_USER,
+        gecos: 'Fleet deployment',
+        shell: '/bin/bash',
+        lock_passwd: true,
+        sudo: 'ALL=(ALL) NOPASSWD:ALL',
+        ssh_authorized_keys: [args.authorizedKey.trim()]
+      }
     ],
-    runcmd: [
-      dockerScript,
-      dedent`
-        set -eu
-        chmod 0700 /root/.ssh
-        systemctl restart ssh || systemctl restart sshd
-      `,
-      ...(profile.extraRunCmds ?? [])
-    ]
+    bootcmd: ['mkdir -p /etc/ssh/sshd_config.d'],
+    write_files: [
+      { path: SSHD_CONFIG_PATH, owner: 'root:root', permissions: '0644', content: sshdConfig(args.ssh.port) }
+    ],
+    runcmd: [`set -eu\n${RESTART_SSH}`]
   });
 }

@@ -1,6 +1,7 @@
 import * as pulumi from '@pulumi/pulumi';
 import type { ComposeApp, PublicTlsMaterial } from '../core/contracts';
 import { assertPort, readHttpsUrl } from '../core/validate';
+import { RELAY_CONTAINER_HARDENING } from '../relay/hardening';
 
 export const IROH_HTTPS_ENDPOINT = 'iroh.https';
 export const IROH_QUIC_DISCOVERY_ENDPOINT = 'iroh.quic-discovery';
@@ -53,6 +54,7 @@ export function irohRelayApp(args: IrohRelayAppArgs): ComposeApp {
         restart: 'unless-stopped',
         network_mode: 'host',
         pull_policy: 'always',
+        ...RELAY_CONTAINER_HARDENING,
         environment: { IROH_RELAY_HTTP_BEARER_TOKEN: token, RUST_LOG: 'iroh_relay=info' },
         volumes: [`${dir}/iroh-relay.toml:/etc/iroh/iroh-relay.toml:ro`, `${dir}/certs:/etc/iroh/certs:ro`],
         command: ['--config-path', '/etc/iroh/iroh-relay.toml']
